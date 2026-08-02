@@ -39,6 +39,9 @@ final class OverlayCoordinator {
     /// The bitmap the image tool will place, loaded when the tool is selected so the drag
     /// itself already previews the real picture.
     private(set) var pendingImage: AnnotationImage?
+    /// Index of the mark being edited, if any. Placed images get selected on arrival so their
+    /// handles are there immediately rather than after a discovery step.
+    private(set) var selectedMark: Int?
     private(set) var strokeColor = PixelColor(red: 255, green: 59, blue: 48)
     private(set) var strokeWidth: CGFloat = 4
 
@@ -59,6 +62,7 @@ final class OverlayCoordinator {
         self.activeTool = nil
         self.isMeasuring = false
         self.pendingImage = nil
+        selectedMark = nil
         previousApp = NSWorkspace.shared.frontmostApplication
 
         windows = shots.map { OverlayWindow(shot: $0, coordinator: self) }
@@ -131,6 +135,7 @@ final class OverlayCoordinator {
         activeTool = nil
         isMeasuring = false
         pendingImage = nil
+        selectedMark = nil
 
         // Hand focus back to whatever the user was actually working in.
         previousApp?.activate()
@@ -220,7 +225,39 @@ final class OverlayCoordinator {
         let all = annotations.annotations
         for window in windows {
             window.rootView?.apply(annotations: all, draft: draft)
+            window.rootView?.apply(selectedMark: selectedMark.flatMap {
+                all.indices.contains($0) ? all[$0].boundingRect : nil
+            })
         }
+    }
+
+    // MARK: - Editing a placed mark
+
+    func selectMark(_ index: Int?) {
+        selectedMark = index.flatMap { annotations.annotations.indices.contains($0) ? $0 : nil }
+        broadcastAnnotations()
+    }
+
+    /// The mark under a point, so a click can pick one up.
+    func markIndex(at point: CGPoint) -> Int? {
+        annotations.indexOfMark(at: point)
+    }
+
+    func mark(at index: Int) -> Annotation? {
+        annotations.annotations.indices.contains(index) ? annotations.annotations[index] : nil
+    }
+
+    func updateMark(_ index: Int, to annotation: Annotation) {
+        annotations.replace(at: index, with: annotation)
+        broadcastAnnotations()
+    }
+
+    func deleteSelectedMark() {
+        guard let selectedMark else { return }
+        annotations.remove(at: selectedMark)
+        self.selectedMark = nil
+        broadcastAnnotations()
+        refreshToolbar()
     }
 
     // MARK: - Toolbar
@@ -415,9 +452,11 @@ extension OverlayCoordinator: ToolbarDelegate {
                 image: image
             )
         )
-        broadcastAnnotations()
-        refreshToolbar()
-        HUD.show("Placed  ·  ⌘Z to undo, or drag to place it precisely")
+        // Disarm the tool and select what was just placed: with the tool still armed, a drag
+        // on the new image would draw *another* one instead of moving it.
+        arm(nil)
+        selectMark(annotations.annotations.count - 1)
+        HUD.show("Drag to move it, or a handle to resize  ·  ⌫ removes it")
     }
 
     private func arm(_ tool: AnnotationTool?) {

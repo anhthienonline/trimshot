@@ -101,6 +101,48 @@ public struct Annotation: Sendable, Equatable {
     }
 }
 
+extension Annotation {
+    /// The same mark shifted by a delta.
+    public func moved(dx: CGFloat, dy: CGFloat) -> Annotation {
+        var copy = self
+        copy.points = points.map { CGPoint(x: $0.x + dx, y: $0.y + dy) }
+        return copy
+    }
+
+    /// The same mark rescaled so its bounding rect becomes `rect`.
+    ///
+    /// Every point is remapped proportionally rather than the two corners being overwritten,
+    /// so this works for a freehand stroke as well as a rectangle. A degenerate source rect
+    /// has no proportions to preserve, so the mark is moved to the new origin instead of
+    /// being divided by zero.
+    public func resized(to rect: CGRect) -> Annotation {
+        let old = boundingRect
+        var copy = self
+        guard old.width > 0, old.height > 0 else {
+            copy.points = points.map { _ in rect.origin }
+            return copy
+        }
+        copy.points = points.map { point in
+            CGPoint(
+                x: rect.minX + (point.x - old.minX) / old.width * rect.width,
+                y: rect.minY + (point.y - old.minY) / old.height * rect.height
+            )
+        }
+        return copy
+    }
+
+    /// Whether a point lands on this mark, for picking it up with the mouse.
+    ///
+    /// Bounding-box hit testing is right for the tools that fill a rect — an image, a
+    /// pixelated block. A line or a freehand stroke would need distance-to-stroke instead,
+    /// which is why those are not pickable yet rather than being pickable and wrong.
+    public var isPickable: Bool { tool == .image || tool == .pixelate }
+
+    public func contains(_ point: CGPoint, tolerance: CGFloat = 2) -> Bool {
+        isPickable && boundingRect.insetBy(dx: -tolerance, dy: -tolerance).contains(point)
+    }
+}
+
 /// The annotation list plus undo/redo.
 ///
 /// Redo is dropped as soon as a new mark is added, which is what every drawing tool
@@ -132,6 +174,28 @@ public struct AnnotationStore: Sendable {
         guard let last = undone.popLast() else { return false }
         annotations.append(last)
         return true
+    }
+
+    /// Replaces one mark in place.
+    ///
+    /// Deliberately does not touch the undo stack: a drag would otherwise push a step per
+    /// mouse-move. The consequence is that undo removes the mark rather than reverting the
+    /// move, which is the behaviour most editors settle on for a first pass.
+    public mutating func replace(at index: Int, with annotation: Annotation) {
+        guard annotations.indices.contains(index) else { return }
+        annotations[index] = annotation
+    }
+
+    public mutating func remove(at index: Int) {
+        guard annotations.indices.contains(index) else { return }
+        annotations.remove(at: index)
+        undone.removeAll()
+    }
+
+    /// The topmost pickable mark under a point — topmost because later marks draw over
+    /// earlier ones, so that is the one a click means.
+    public func indexOfMark(at point: CGPoint) -> Int? {
+        annotations.lastIndex { $0.contains(point) }
     }
 
     public mutating func removeAll() {

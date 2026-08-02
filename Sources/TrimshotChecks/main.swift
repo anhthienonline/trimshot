@@ -452,4 +452,68 @@ Check.suite("Annotation.image") {
     Check.expect(placed != noPicture, "and distinguishes one with a picture from one without")
 }
 
+Check.suite("Annotation editing") {
+    let red = PixelColor(red: 255, green: 59, blue: 48)
+    let box = Annotation(tool: .rectangle, points: [CGPoint(x: 10, y: 20), CGPoint(x: 110, y: 70)],
+                         color: red, lineWidth: 2)
+
+    Check.expectEqual(
+        box.moved(dx: 5, dy: -5).boundingRect,
+        CGRect(x: 15, y: 15, width: 100, height: 50),
+        "moving shifts the whole mark and keeps its size"
+    )
+
+    Check.expectEqual(
+        box.resized(to: CGRect(x: 0, y: 0, width: 200, height: 100)).boundingRect,
+        CGRect(x: 0, y: 0, width: 200, height: 100),
+        "resizing lands exactly on the requested rect"
+    )
+
+    // A freehand stroke must keep its shape proportionally, not just its two extremes.
+    let stroke = Annotation(
+        tool: .pen,
+        points: [CGPoint(x: 0, y: 0), CGPoint(x: 5, y: 10), CGPoint(x: 10, y: 0)],
+        color: red, lineWidth: 3
+    )
+    let doubled = stroke.resized(to: CGRect(x: 0, y: 0, width: 20, height: 20))
+    Check.expectEqual(doubled.points[1], CGPoint(x: 10, y: 20), "the middle point scales with the rest")
+    Check.expectEqual(doubled.points.count, 3, "and no points are lost")
+
+    let degenerate = Annotation(tool: .line, points: [CGPoint(x: 5, y: 5), CGPoint(x: 5, y: 5)],
+                               color: red, lineWidth: 2)
+    Check.expectEqual(
+        degenerate.resized(to: CGRect(x: 40, y: 40, width: 10, height: 10)).points,
+        [CGPoint(x: 40, y: 40), CGPoint(x: 40, y: 40)],
+        "a zero-size mark moves instead of dividing by zero"
+    )
+
+    // Only the tools that fill a rect are pickable; a line would need distance-to-stroke.
+    let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    let ctx = CGContext(data: nil, width: 4, height: 4, bitsPerComponent: 8, bytesPerRow: 0,
+                        space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    let picture = AnnotationImage(ctx.makeImage()!)
+    let placed = Annotation(tool: .image, points: [CGPoint(x: 0, y: 0), CGPoint(x: 50, y: 50)],
+                            color: red, lineWidth: 0, image: picture)
+    Check.expect(placed.contains(CGPoint(x: 25, y: 25)), "a click inside a placed image picks it")
+    Check.expect(!placed.contains(CGPoint(x: 80, y: 25)), "a click outside does not")
+    Check.expect(!box.isPickable, "a rectangle outline is not pickable yet")
+
+    var store = AnnotationStore()
+    store.add(placed)
+    store.add(placed.moved(dx: 100, dy: 0))
+    Check.expectEqual(store.indexOfMark(at: CGPoint(x: 125, y: 25)), 1, "picks the mark under the point")
+    Check.expectEqual(store.indexOfMark(at: CGPoint(x: 25, y: 25)), 0, "and the other one at its own spot")
+    Check.expect(store.indexOfMark(at: CGPoint(x: 400, y: 400)) == nil, "empty space picks nothing")
+
+    store.replace(at: 0, with: placed.moved(dx: 0, dy: 30))
+    Check.expectEqual(store.annotations[0].boundingRect.minY, 30, "replace mutates in place")
+    Check.expectEqual(store.annotations.count, 2, "without changing the count")
+
+    store.remove(at: 0)
+    Check.expectEqual(store.annotations.count, 1, "remove drops one")
+    store.replace(at: 99, with: placed)
+    store.remove(at: 99)
+    Check.expectEqual(store.annotations.count, 1, "out-of-range indices are ignored, not crashes")
+}
+
 Check.finish()

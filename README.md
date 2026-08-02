@@ -71,12 +71,19 @@ launch.
 | `⌘C` / `return` | copy the selection |
 | `⌘S` / `⌘⇧S` | save to the configured folder / via a panel |
 | `⌘V` | with the image tool armed, place the clipboard image instead of a file |
+| drag a placed image / its handles | move it / resize it |
+| `⌫` | remove the selected placed image |
 | `esc` / right-click | cancel |
 
 Once a selection settles, a toolbar appears with freehand, line, arrow, rectangle,
 ellipse, highlighter, text, pixelate and place-an-image, plus colour, stroke width, undo, OCR, copy, save
 and cancel. Picking a tool turns the selection into a canvas; tapping the active tool
 again returns to resizing it.
+
+Choosing an image drops it into the middle of the selection right away, selected, with a
+dashed teal frame and handles — drag it to move, drag a handle to resize, `⌫` to remove.
+Only the tools that fill a rect are pickable this way; a line or a freehand stroke would need
+distance-to-stroke hit testing, so those are not pickable rather than pickable and wrong.
 
 The magnifier follows the cursor while selecting: an 8× pixel grid with the HEX value and
 pixel coordinate under the crosshair. The size readout gives both pixels and points, which

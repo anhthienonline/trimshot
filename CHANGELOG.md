@@ -41,6 +41,8 @@ First public build.
 - Freehand, line, arrow, rectangle, ellipse, highlighter, text, pixelate, and place an
   image — the tool opens a file picker, or `⌘V` uses the clipboard instead. Placed images
   keep their aspect ratio inside the rect you drag.
+- A placed image arrives centred in the selection and selected, and can be dragged, resized
+  by its handles, or removed with `⌫`.
 - Six colours, three stroke widths, undo and redo.
 - The live preview and the exported file go through one renderer, so they cannot drift —
   measured agreement 0.23/255.

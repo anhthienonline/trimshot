@@ -21,6 +21,10 @@ final class OverlayRootView: NSView {
         case moving(grabOffset: CGSize, size: CGSize)
         /// Dragging out an annotation with the active tool.
         case annotating(tool: AnnotationTool, points: [CGPoint])
+        /// Sliding a placed mark; `grabOffset` is cursor − the mark's origin.
+        case movingMark(index: Int, grabOffset: CGSize, original: Annotation)
+        /// Dragging one handle of a placed mark.
+        case resizingMark(index: Int, handle: SelectionHandle, original: Annotation)
     }
 
     private let shot: DisplayShot
@@ -77,6 +81,11 @@ final class OverlayRootView: NSView {
     func apply(annotations: [Annotation], draft: Annotation?) {
         chrome.annotations = annotations
         chrome.draft = draft
+    }
+
+    func apply(selectedMark rect: CGRect?) {
+        chrome.selectedMark = rect
+        window?.invalidateCursorRects(for: self)
     }
 
     func apply(isMeasuring: Bool) {
@@ -144,6 +153,33 @@ final class OverlayRootView: NSView {
         coordinator?.updatePointer(point)
         commitPendingText()
 
+        // A placed mark under the cursor is picked up before anything else — its handles sit
+        // inside the selection, where a drag would otherwise move the selection itself.
+        if coordinator?.activeTool == nil, let coordinator, chrome.isSettled {
+            if let selected = coordinator.selectedMark,
+               let mark = coordinator.mark(at: selected),
+               let handle = SelectionHandle.hitTest(point, in: mark.boundingRect) {
+                interaction = .resizingMark(index: selected, handle: handle, original: mark)
+                return
+            }
+            if let index = coordinator.markIndex(at: point), let mark = coordinator.mark(at: index) {
+                coordinator.selectMark(index)
+                interaction = .movingMark(
+                    index: index,
+                    grabOffset: CGSize(
+                        width: point.x - mark.boundingRect.minX,
+                        height: point.y - mark.boundingRect.minY
+                    ),
+                    original: mark
+                )
+                return
+            }
+            // Clicking elsewhere puts the mark down.
+            if coordinator.selectedMark != nil {
+                coordinator.selectMark(nil)
+            }
+        }
+
         // With a tool active, dragging inside the selection draws instead of adjusting.
         if let tool = coordinator?.activeTool,
            let selection = coordinator?.selection,
@@ -198,6 +234,19 @@ final class OverlayRootView: NSView {
                 y: (point.y - grabOffset.height).rounded()
             )
             coordinator?.updateSelection(CGRect(origin: origin, size: size))
+        case .movingMark(let index, let grabOffset, let original):
+            let rect = original.boundingRect
+            coordinator?.updateMark(
+                index,
+                to: original.moved(
+                    dx: (point.x - grabOffset.width) - rect.minX,
+                    dy: (point.y - grabOffset.height) - rect.minY
+                )
+            )
+        case .resizingMark(let index, let handle, let original):
+            let resized = handle.resize(original.boundingRect, to: point)
+            guard resized.width >= 2, resized.height >= 2 else { return }
+            coordinator?.updateMark(index, to: original.resized(to: resized))
         case .annotating(let tool, var points):
             if tool.isFreehand {
                 points.append(point)
@@ -228,6 +277,8 @@ final class OverlayRootView: NSView {
             }
         case .resizing, .moving:
             coordinator?.setSettled(true)
+        case .movingMark, .resizingMark:
+            break  // already applied on every drag step
         case .annotating:
             coordinator?.commitDraft()
         }
@@ -250,8 +301,16 @@ final class OverlayRootView: NSView {
 
     override func keyDown(with event: NSEvent) {
         switch Int(event.keyCode) {
+        case kVK_Delete, kVK_ForwardDelete:
+            coordinator?.deleteSelectedMark()
         case kVK_Escape:
-            coordinator?.cancel()
+            // A selected mark takes the first escape, so it is not the whole capture that
+            // disappears when you meant to deselect.
+            if coordinator?.selectedMark != nil {
+                coordinator?.selectMark(nil)
+            } else {
+                coordinator?.cancel()
+            }
         case kVK_Return, kVK_ANSI_KeypadEnter:
             coordinator?.finish(with: .copy)
         case kVK_ANSI_C where event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty:

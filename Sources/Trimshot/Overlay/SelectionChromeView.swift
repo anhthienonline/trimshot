@@ -54,6 +54,11 @@ final class SelectionChromeView: NSView {
         didSet { if activeTool != oldValue { needsDisplay = true } }
     }
 
+    /// Bounding rect of the mark being edited, in AppKit global points.
+    var selectedMark: CGRect? {
+        didSet { if selectedMark != oldValue { needsDisplay = true } }
+    }
+
     /// Measure mode: report the gap the cursor sits in instead of showing the loupe.
     var isMeasuring = false {
         didSet { if isMeasuring != oldValue { needsDisplay = true } }
@@ -102,8 +107,12 @@ final class SelectionChromeView: NSView {
         static let handleFill = NSColor.white
         static let handleStroke = NSColor.black.withAlphaComponent(0.55)
         static let handleSize: CGFloat = 7
-        /// Reserved for dimension annotations — see brand/BRAND.md.
+        /// Reserved for dimension annotations — see brand/BRAND.md. Nothing else may use it,
+        /// or it stops meaning "this has been measured".
         static let measure = NSColor(srgbRed: 0xD8 / 255, green: 0x1B / 255, blue: 0x60 / 255, alpha: 1)
+        /// The brand's signal teal, for the frame around a mark being edited. Distinct from
+        /// both the solid white selection border and the magenta dimension lines.
+        static let editFrame = NSColor(srgbRed: 0x5F / 255, green: 0xD3 / 255, blue: 0xDE / 255, alpha: 1)
 
         // Computed rather than stored: NSFont is not Sendable, so a `static let` would
         // be a concurrency error under Swift 6.
@@ -121,6 +130,9 @@ final class SelectionChromeView: NSView {
                 drawHandles(on: toLocal(selection))
             }
             drawSizeLabel(for: selection)
+            if let selectedMark {
+                drawMarkFrame(on: toLocal(selectedMark))
+            }
         } else {
             drawDim(punchingOut: nil)
             drawCrosshair()
@@ -274,6 +286,17 @@ final class SelectionChromeView: NSView {
             outline.lineWidth = 1
             outline.stroke()
         }
+    }
+
+    /// A dashed frame with handles around the mark being edited — dashed so it never reads as
+    /// the selection border, which is solid.
+    private func drawMarkFrame(on rect: CGRect) {
+        Style.editFrame.setStroke()
+        let outline = NSBezierPath(rect: rect.insetBy(dx: -1, dy: -1))
+        outline.lineWidth = 1
+        outline.setLineDash([4, 3], count: 2, phase: 0)
+        outline.stroke()
+        drawHandles(on: rect)
     }
 
     private func drawCrosshair() {

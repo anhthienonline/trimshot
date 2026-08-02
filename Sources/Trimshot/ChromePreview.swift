@@ -76,6 +76,7 @@ enum ChromePreview {
             ("chrome-settled", true, [], false),
             ("chrome-annotated", true, marks, false),
             ("chrome-measuring", false, [], true),
+            ("chrome-placed-image", true, [imageOnly(in: selection)], false),
         ]
 
         for state in states {
@@ -214,6 +215,21 @@ enum ChromePreview {
                 image: sampleSwatch().map(AnnotationImage.init)
             ),
         ]
+    }
+
+    /// Just the placed image, selected — the state right after choosing a file.
+    private static func imageOnly(in selection: CGRect) -> Annotation {
+        let box = selection.insetBy(dx: selection.width * 0.2, dy: selection.height * 0.2)
+        let swatch = sampleSwatch()
+        let size = swatch.map { CGSize(width: $0.width, height: $0.height) } ?? .zero
+        let rect = AnnotationRenderer.fit(size, in: box)
+        return Annotation(
+            tool: .image,
+            points: [rect.origin, CGPoint(x: rect.maxX, y: rect.maxY)],
+            color: PixelColor(red: 255, green: 59, blue: 48),
+            lineWidth: 0,
+            image: swatch.map(AnnotationImage.init)
+        )
     }
 
     /// A recognisable 2:1 test picture: teal and magenta halves with a white border.
@@ -432,6 +448,8 @@ enum ChromePreview {
         chrome.isSettled = isSettled
         chrome.annotations = annotations
         chrome.isMeasuring = measuring
+        // The placed-image state shows what the editable frame looks like.
+        chrome.selectedMark = annotations.first(where: { $0.tool == .image })?.boundingRect
 
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = context
