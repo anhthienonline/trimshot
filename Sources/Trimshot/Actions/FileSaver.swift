@@ -70,7 +70,9 @@ enum FileSaver {
     /// `begin(completionHandler:)` presents the same panel as an ordinary window. Measured in
     /// the same situation: visible, unoccluded, and key.
     @MainActor
-    static func chooseImage(completion: @escaping (CGImage?) -> Void) {
+    /// - Parameter completion: the decoded image, plus whether the user cancelled — so the
+    ///   caller can tell "changed my mind" apart from "that file would not decode".
+    static func chooseImage(completion: @escaping (CGImage?, _ cancelled: Bool) -> Void) {
         NSApp.activate(ignoringOtherApps: true)
         let panel = NSOpenPanel()
         raiseAboveOverlay(panel)
@@ -80,18 +82,22 @@ enum FileSaver {
         panel.message = "Choose an image to place on the capture"
 
         panel.begin { response in
-            // AppKit calls this on the main thread but types it as a plain closure.
-            MainActor.assumeIsolated {
+            // Hop to the main queue explicitly rather than asserting the callback is already
+            // there: `assumeIsolated` would trap the whole app if AppKit ever called this
+            // from anywhere else.
+            DispatchQueue.main.async {
+                guard response == .OK, let url = panel.url else {
+                    completion(nil, true)
+                    return
+                }
                 guard
-                    response == .OK,
-                    let url = panel.url,
                     let source = CGImageSourceCreateWithURL(url as CFURL, nil),
                     let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
                 else {
-                    completion(nil)
+                    completion(nil, false)
                     return
                 }
-                completion(image)
+                completion(image, false)
             }
         }
     }

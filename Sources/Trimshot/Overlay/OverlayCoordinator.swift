@@ -357,8 +357,17 @@ extension OverlayCoordinator: ToolbarDelegate {
         // The picture is chosen before the drag so the drag itself previews the real image.
         // The picker is asynchronous, so the tool arms in the callback rather than here.
         if tool == .image {
-            FileSaver.chooseImage { [weak self] chosen in
-                guard let self, self.isActive else { return }
+            FileSaver.chooseImage { [weak self] chosen, cancelled in
+                guard let self else { return }
+                guard self.isActive else {
+                    // The capture ended while the picker was open.
+                    return
+                }
+                if !cancelled, chosen == nil {
+                    HUD.show("Could not read that image file")
+                    self.refreshToolbar()
+                    return
+                }
                 guard let chosen else {
                     // Cancelling is a normal outcome, not an error worth a warning — but the
                     // toolbar still has to be told, or the button it just highlighted stays
@@ -369,12 +378,46 @@ extension OverlayCoordinator: ToolbarDelegate {
                 }
                 self.pendingImage = AnnotationImage(chosen)
                 self.arm(.image)
+                // Place it straight away. Arming the tool and waiting for a drag looks
+                // identical to nothing having happened, which is how this read the first
+                // time: choose a file, panel closes, blank screen.
+                self.placeImageInMiddleOfSelection()
             }
             return
         }
 
         pendingImage = nil
         arm(tool)
+    }
+
+    /// Drops the pending image into the middle of the selection at 60% of its size.
+    ///
+    /// The tool stays armed afterwards, so dragging a rect still places another one exactly
+    /// where you want it — this only removes the case where choosing a file appeared to do
+    /// nothing at all.
+    private func placeImageInMiddleOfSelection() {
+        guard let selection, let image = pendingImage else { return }
+
+        let box = selection.insetBy(dx: selection.width * 0.2, dy: selection.height * 0.2)
+        let size = CGSize(width: image.cgImage.width, height: image.cgImage.height)
+        let rect = AnnotationRenderer.fit(size, in: box)
+        guard rect.width >= 2, rect.height >= 2 else {
+            HUD.show("The selection is too small to place an image in")
+            return
+        }
+
+        annotations.add(
+            Annotation(
+                tool: .image,
+                points: [rect.origin, CGPoint(x: rect.maxX, y: rect.maxY)],
+                color: strokeColor,
+                lineWidth: 0,
+                image: image
+            )
+        )
+        broadcastAnnotations()
+        refreshToolbar()
+        HUD.show("Placed  ·  ⌘Z to undo, or drag to place it precisely")
     }
 
     private func arm(_ tool: AnnotationTool?) {
