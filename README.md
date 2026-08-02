@@ -237,6 +237,37 @@ breadth it cannot back up, the accuracy claim stops being believable too.
 section says so up front, with the exact click path. Publishing an unnotarised binary and
 letting visitors discover that themselves is how a promo page loses people.
 
+### Releasing
+
+```bash
+./scripts/release.sh 0.1.0
+```
+
+Checks that `Info.plist` and `CHANGELOG.md` agree with the version you asked for, runs the
+build and the checks, packages the dmg, and stamps the real sha256 into
+`homebrew/trimshot.rb`. Then it stops and prints the publish commands — creating a tag, a
+GitHub release and a public download are one-way, so it does not do them for you.
+
+Two verifications cannot run in CI because they need a Screen Recording grant, and they are
+the manual gate before publishing:
+
+```bash
+./scripts/self-check.sh
+./scripts/render-chrome.sh
+```
+
+### Homebrew
+
+`homebrew/trimshot.rb` is the source of truth for the cask; the tap itself is a separate
+repository (`homebrew-trimshot`, so the tap name is `hokhacthien91/trimshot`).
+
+**Homebrew does not solve the Gatekeeper problem.** Cask quarantines its downloads by
+default, so `brew install --cask trimshot` on an un-notarised build still needs the same
+one-time approval in System Settings. The `--no-quarantine` flag that used to skip it is
+being removed, and Homebrew is moving toward requiring casks to pass Gatekeeper outright —
+so brew buys convenient installs and updates, not a bypass, and an un-notarised cask may
+stop being accepted. Notarising is the only thing that actually removes the step.
+
 ### Signing
 
 macOS ties the Screen Recording permission to the app's designated requirement. An ad-hoc
