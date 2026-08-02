@@ -14,7 +14,8 @@ First public build.
 - Multi-display selections, including monitors at negative coordinates and mixed scale
   factors. A cross-display crop renders at the highest scale involved so the Retina half is
   not halved.
-- Size readout in both units — `840 × 480 px · 420 × 240 pt`.
+- Every reading is in CSS pixels — the unit Figma and CSS use. A 420 px frame reads 420, not
+  the 840 device pixels macOS's own tool reports. Saved files are still 2× on Retina.
 
 ### Selection
 

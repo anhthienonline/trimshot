@@ -166,7 +166,6 @@ final class SelectionChromeView: NSView {
     private func drawMeasurement() {
         guard pointerIsOnThisDisplay, let pointer else { return }
 
-        let scale = shot.geometry.scale
         let pixel = ScreenGeometry.pixelPoint(forGlobalPoint: pointer, in: shot.geometry)
         let spans = EdgeDetector.spans(in: shot.image, atX: pixel.x, y: pixel.y)
         let local = toLocal(pointer)
@@ -179,7 +178,7 @@ final class SelectionChromeView: NSView {
             drawDimension(
                 from: CGPoint(x: x.from, y: local.y.rounded() + 0.5),
                 to: CGPoint(x: x.to, y: local.y.rounded() + 0.5),
-                text: sizeText(pixels: h.length, scale: scale),
+                text: sizeText(pixels: h.length, scale: shot.geometry.scale),
                 vertical: false
             )
         }
@@ -189,7 +188,7 @@ final class SelectionChromeView: NSView {
             drawDimension(
                 from: CGPoint(x: local.x.rounded() + 0.5, y: y.from),
                 to: CGPoint(x: local.x.rounded() + 0.5, y: y.to),
-                text: sizeText(pixels: v.length, scale: scale),
+                text: sizeText(pixels: v.length, scale: shot.geometry.scale),
                 vertical: true
             )
         }
@@ -203,7 +202,6 @@ final class SelectionChromeView: NSView {
         let a = toLocal(ruler.from)
         let b = toLocal(ruler.to)
         let elbow = toLocal(ruler.elbow)
-        let scale = shot.geometry.scale
 
         // The W and H legs, dashed so they read as construction lines rather than as the
         // measurement itself.
@@ -226,14 +224,11 @@ final class SelectionChromeView: NSView {
         drawEndTick(at: a, facing: b)
         drawEndTick(at: b, facing: a)
 
-        let distancePx = RulerReading.pixels(ruler.distance, scale: scale)
-        let primary = scale == 1
-            ? "D \(distancePx) px"
-            : "D \(distancePx) px · \(Int(ruler.distance.rounded())) pt"
+        let primary = "D " + Units.length(ruler.distance)
         let secondary = String(
             format: "W %d  H %d  %.1f°",
-            abs(RulerReading.pixels(ruler.dx, scale: scale)),
-            abs(RulerReading.pixels(ruler.dy, scale: scale)),
+            abs(Int(ruler.dx.rounded())),
+            abs(Int(ruler.dy.rounded())),
             ruler.angle
         )
 
@@ -285,10 +280,10 @@ final class SelectionChromeView: NSView {
         )
     }
 
+    /// A span is measured in device pixels because that is what the bitmap is; the reading is
+    /// in CSS pixels because that is what the app reports. See Units.
     private func sizeText(pixels: Int, scale: CGFloat) -> String {
-        scale == 1
-            ? "\(pixels) px"
-            : "\(pixels) px · \(Int((CGFloat(pixels) / scale).rounded())) pt"
+        Units.length(CGFloat(pixels) / scale)
     }
 
     /// A line with end ticks and a label in the middle — the same annotation the brand uses.
@@ -417,16 +412,7 @@ final class SelectionChromeView: NSView {
     /// `840 × 480 px · 420 × 240 pt` — pixels first because that is what a developer
     /// checking a build against a Figma frame actually needs.
     private func drawSizeLabel(for globalSelection: CGRect) {
-        let scale = shot.geometry.scale
-        let pixelWidth = Int((globalSelection.width * scale).rounded())
-        let pixelHeight = Int((globalSelection.height * scale).rounded())
-        let pointWidth = Int(globalSelection.width.rounded())
-        let pointHeight = Int(globalSelection.height.rounded())
-
-        var text = "\(pixelWidth) × \(pixelHeight) px"
-        if scale != 1 {
-            text += "  ·  \(pointWidth) × \(pointHeight) pt"
-        }
+        let text = Units.size(globalSelection.size)
 
         let local = toLocal(globalSelection)
         let size = measure(text, font: Style.labelFont)

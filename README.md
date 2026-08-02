@@ -1,8 +1,9 @@
 # Trimshot
 
 A Lightshot-style screen capture app for macOS: hit a hotkey, the screen freezes, drag a
-region, annotate it, copy or save. Built for design QA — it reports both pixel and point
-dimensions, picks colours out of the frozen bitmap, and runs OCR in Vietnamese.
+region, annotate it, copy or save. Built for design QA — every reading is in CSS
+pixels, the unit your design is already in, and it picks colours out of the frozen bitmap and
+runs OCR in Vietnamese.
 
 Native Swift + AppKit + ScreenCaptureKit. No cloud upload: captures stay on your machine.
 
@@ -86,8 +87,13 @@ Only the tools that fill a rect are pickable this way; a line or a freehand stro
 distance-to-stroke hit testing, so those are not pickable rather than pickable and wrong.
 
 The magnifier follows the cursor while selecting: an 8× pixel grid with the HEX value and
-pixel coordinate under the crosshair. The size readout gives both pixels and points, which
-is what you want when checking a build against a Figma frame on a Retina display.
+pixel coordinate under the crosshair. The size readout is in CSS pixels, so a 420 px
+Figma frame reads 420 — not the 840 device pixels macOS's own screenshot tool would report.
+
+All measurements are **CSS pixels**, never device pixels. AppKit points already are CSS
+pixels, so the discipline is in never multiplying by the scale factor; everything routes
+through `Units` in `TrimshotCore` so one label cannot drift into a different unit from the
+rest. A saved PNG is still 2× those numbers on a Retina display, as every macOS screenshot is.
 
 **Ruler mode** does two things. Hovering reports the near-uniform run the cursor sits inside,
 horizontally and vertically — point at the space between a button and its label and read the

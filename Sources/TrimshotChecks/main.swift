@@ -553,8 +553,38 @@ Check.suite("RulerReading") {
     Check.expect(RulerReading(from: .zero, to: CGPoint(x: 3, y: 4)).isMeaningful,
                  "a real drag is")
 
-    Check.expectEqual(RulerReading.pixels(50, scale: 2), 100, "50 pt is 100 px at 2x")
-    Check.expectEqual(RulerReading.pixels(50, scale: 1), 50, "and 50 px at 1x")
+}
+
+Check.suite("Units") {
+    // Everything the app displays is CSS pixels — the unit Figma and CSS use — never device
+    // pixels. A regression here would put every reading out by the display's scale factor.
+    Check.expectEqual(Units.length(377), "377 px", "a length is rounded and labelled px")
+    Check.expectEqual(Units.length(376.6), "377 px", "and rounds rather than truncates")
+    Check.expectEqual(Units.length(0), "0 px", "zero is still a number")
+    Check.expectEqual(
+        Units.size(CGSize(width: 420, height: 240)),
+        "420 × 240 px",
+        "a size uses a multiplication sign, not an x"
+    )
+    Check.expectEqual(
+        Units.size(CGSize(width: 419.5, height: 240.4)),
+        "420 × 240 px",
+        "and rounds both dimensions"
+    )
+    Check.expectEqual(Units.point(CGPoint(x: 1284, y: 662)), "1284, 662", "a position omits the unit")
+    Check.expectEqual(Units.deviceSize(width: 840, height: 480), "840 × 480", "file dimensions omit it too")
+
+    // The whole point: a 420 pt selection on a 2× display reads 420, not 840.
+    let selectionOnRetina = CGRect(x: 0, y: 0, width: 420, height: 240)
+    Check.expectEqual(
+        Units.size(selectionOnRetina.size),
+        "420 × 240 px",
+        "a selection reports its CSS size, not its device size"
+    )
+    Check.expect(
+        !Units.size(selectionOnRetina.size).contains("840"),
+        "the device number never leaks into a reading"
+    )
 }
 
 Check.finish()

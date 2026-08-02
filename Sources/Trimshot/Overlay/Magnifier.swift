@@ -193,7 +193,13 @@ struct Magnifier {
             )
         }
 
-        ("\(pixel.x), \(pixel.y) px  ·  C copies" as NSString).draw(
+        // The grid above is device pixels — that is what a loupe is for — but the coordinate
+        // is CSS px so it matches every other number in the app. See Units.
+        let cssPoint = CGPoint(
+            x: CGFloat(pixel.x) / shot.geometry.scale,
+            y: CGFloat(pixel.y) / shot.geometry.scale
+        )
+        ("\(Units.point(cssPoint)) px  ·  C copies" as NSString).draw(
             at: CGPoint(x: rect.minX + 9, y: rect.minY + 7),
             withAttributes: [
                 .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular),

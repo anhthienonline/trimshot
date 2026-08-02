@@ -36,9 +36,4 @@ public struct RulerReading: Equatable, Sendable {
     public var elbow: CGPoint { CGPoint(x: to.x, y: from.y) }
 
     public var isMeaningful: Bool { distance >= 1 }
-
-    /// Converts a length in points to whole pixels on a display of the given scale.
-    public static func pixels(_ points: CGFloat, scale: CGFloat) -> Int {
-        Int((points * scale).rounded())
-    }
 }

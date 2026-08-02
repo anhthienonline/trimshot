@@ -81,7 +81,7 @@ fallback, and a brand that depends on a network request is not a brand.
 longer than a few words. Anywhere digits line up in a column, use
 `font-variant-numeric: tabular-nums`.
 
-**Always monospace:** pixel and point dimensions (`1440 × 900 px`), hex values (`#181818`),
+**Always monospace:** dimensions (`1440 × 900 px` — always CSS pixels), hex values (`#181818`),
 keyboard shortcuts (`⌃G`), sizes (`520 KB`). These are data, and data is set in the data
 face.
 

@@ -334,7 +334,10 @@ final class OverlayCoordinator {
         switch action {
         case .copy:
             ClipboardService.copy(image)
-            HUD.show("Copied  \(image.width) × \(image.height) px")
+            // The selection, not the bitmap: a Retina file is 2× these numbers, and the
+            // number worth confirming is the one the user just drew.
+            HUD.show("Copied  " + (selection.map { Units.size($0.size) }
+                ?? Units.deviceSize(width: image.width, height: image.height)))
 
         case .save:
             do {

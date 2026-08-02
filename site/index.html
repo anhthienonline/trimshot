@@ -422,7 +422,7 @@
     <a class="navlink" href="#shortcuts">Shortcuts</a>
     <a class="navlink" href="#install">Install</a>
     <a class="navlink" href="https://github.com/hokhacthien91/trimshot">Source</a>
-    <a class="btn btn-primary" href="Trimshot.dmg" download>Download<small>516 KB</small></a>
+    <a class="btn btn-primary" href="Trimshot.dmg" download>Download<small>775 KB</small></a>
   </nav>
 
   <header>
@@ -433,7 +433,7 @@
       </div>
       <div class="tb-cell">
         <span class="k">Reads in</span>
-        <span class="v mono">points + pixels</span>
+        <span class="v mono">CSS pixels</span>
       </div>
       <div class="tb-cell">
         <span class="k">Deviation</span>
@@ -445,7 +445,7 @@
       </div>
       <div class="tb-cell">
         <span class="k">Size</span>
-        <span class="v mono">516 KB</span>
+        <span class="v mono">775 KB</span>
       </div>
       <div class="tb-cell">
         <span class="k">Sends data</span>
@@ -462,27 +462,27 @@
       select. The pixels you crop are exactly the pixels you saw.
     </p>
     <p class="thesis">
-      It reports them in points <em>and</em> pixels, because on a Retina screen neither
-      number is the whole answer — and it states its own error, measured against Apple's
-      <code>screencapture</code> of the same region, rather than calling itself
-      pixel-perfect.
+      Every reading is in <em>CSS pixels</em> — the unit your design is already in. macOS's own
+      screenshot tool reports device pixels, so a 420 px frame comes back as 840 and you divide
+      by two every time. And it states its own error, measured against Apple's
+      <code>screencapture</code> of the same region, rather than calling itself pixel-perfect.
     </p>
 
     <div class="cta">
-      <a class="btn btn-primary" href="Trimshot.dmg" download>Download for macOS<small>516 KB</small></a>
+      <a class="btn btn-primary" href="Trimshot.dmg" download>Download for macOS<small>775 KB</small></a>
       <a class="btn btn-ghost" href="#install">Read the install note first</a>
       <a class="btn btn-ghost" href="https://github.com/hokhacthien91/trimshot">View source</a>
     </div>
 
     <figure class="shot">
       <div class="screen" role="img"
-        aria-label="The Trimshot overlay: the screen dimmed, a selection with eight resize handles, a size readout of 840 by 480 pixels, a magnifier showing a pixel grid and hex value, and the annotation toolbar.">
+        aria-label="The Trimshot overlay: the screen dimmed, a selection with eight resize handles, a size readout of 420 by 240 CSS pixels, a magnifier showing a pixel grid and hex value, and the annotation toolbar.">
         <div class="screen-bar"><i></i><i></i><i></i></div>
         <div class="dim dim-t"></div>
         <div class="dim dim-b"></div>
         <div class="dim dim-l"></div>
         <div class="dim dim-r"></div>
-        <div class="size-pill">840 × 480 px · 420 × 240 pt</div>
+        <div class="size-pill">420 × 240 px</div>
         <div class="sel">
           <span class="handle h-tl"></span><span class="handle h-tc"></span><span class="handle h-tr"></span>
           <span class="handle h-ml"></span><span class="handle h-mr"></span>
@@ -510,7 +510,7 @@
         </div>
       </div>
       <figcaption>
-        The overlay, drawn to scale: the dim, the eight handles, the dual-unit readout,
+        The overlay, drawn to scale: the dim, the eight handles, the size readout,
         the loupe with its hex value, and the toolbar where it actually appears — just
         under the selection.
       </figcaption>
@@ -547,7 +547,7 @@
           <tr><th scope="col">&nbsp;</th><th scope="col">Trimshot</th><th scope="col">Broad capture tools</th></tr>
         </thead>
         <tbody>
-          <tr><td>Points and pixels together</td><td class="yes">yes</td><td class="no">pixels only, usually</td></tr>
+          <tr><td>Reports your design's unit</td><td class="yes">CSS px</td><td class="no">device px — divide by two</td></tr>
           <tr><td>Stated accuracy figure</td><td class="yes">0.01 / 255</td><td class="no">not published</td></tr>
           <tr><td>Screen frozen before selecting</td><td class="yes">yes</td><td class="no">varies</td></tr>
           <tr><td>Hex picked from the frozen frame</td><td class="yes">yes</td><td class="no">samples the live screen</td></tr>
@@ -555,7 +555,7 @@
           <tr><td>Screen recording, GIF</td><td class="no">no</td><td class="yes">yes</td></tr>
           <tr><td>Cloud upload</td><td class="no">no — and no network code at all</td><td class="yes">yes</td></tr>
           <tr><td>OCR languages</td><td class="no">2 — Vietnamese, English</td><td class="yes">up to 40</td></tr>
-          <tr><td>Download size</td><td class="yes">516 KB</td><td class="no">tens of MB</td></tr>
+          <tr><td>Download size</td><td class="yes">775 KB</td><td class="no">tens of MB</td></tr>
         </tbody>
       </table>
     </div>
@@ -569,9 +569,10 @@
     </div>
     <div class="spec">
       <div>
-        <h3>Both units, always</h3>
-        <p><span class="mono">840 × 480 px · 420 × 240 pt</span> — the pair you need when a
-          Figma frame says one thing and the build reports another.</p>
+        <h3>Your design's unit</h3>
+        <p>A 420 px frame reads <span class="mono">420 × 240 px</span>, not 840 × 480. Figma and
+          CSS work in logical pixels; a Retina screenshot is twice that, and every other tool
+          leaves you dividing.</p>
       </div>
       <div>
         <h3>Loupe and eyedropper</h3>
@@ -688,7 +689,7 @@ brew install --cask trimshot</pre>
         <tbody>
           <tr><td>Requires</td><td class="mono">macOS 14 or later</td></tr>
           <tr><td>Architecture</td><td class="mono">Apple Silicon · universal build on request</td></tr>
-          <tr><td>Download</td><td class="mono">516 KB</td></tr>
+          <tr><td>Download</td><td class="mono">775 KB</td></tr>
           <tr><td>Built with</td><td class="mono">Swift 6 · AppKit · ScreenCaptureKit · Vision</td></tr>
           <tr><td>Dependencies</td><td class="mono">none</td></tr>
           <tr><td>Network access</td><td class="mono">none — no networking code in the binary</td></tr>
