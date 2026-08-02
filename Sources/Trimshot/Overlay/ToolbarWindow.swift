@@ -6,6 +6,7 @@ protocol ToolbarDelegate: AnyObject {
     func toolbarDidSelect(tool: AnnotationTool?)
     func toolbarDidSelect(color: PixelColor)
     func toolbarDidSelect(width: CGFloat)
+    func toolbarDidToggleMeasure()
     func toolbarDidTapUndo()
     func toolbarDidTapRecognizeText()
     func toolbarDidTapCopy()
@@ -55,8 +56,14 @@ final class ToolbarWindow: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    func update(tool: AnnotationTool?, color: PixelColor, width: CGFloat, canUndo: Bool) {
-        bar.update(tool: tool, color: color, width: width, canUndo: canUndo)
+    func update(
+        tool: AnnotationTool?,
+        color: PixelColor,
+        width: CGFloat,
+        canUndo: Bool,
+        isMeasuring: Bool
+    ) {
+        bar.update(tool: tool, color: color, width: width, canUndo: canUndo, isMeasuring: isMeasuring)
     }
 
     /// Parks the bar just below the selection, flipping above it — and finally inside it —

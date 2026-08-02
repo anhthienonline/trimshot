@@ -25,6 +25,8 @@ final class OverlayRootView: NSView {
         case movingMark(index: Int, grabOffset: CGSize, original: Annotation)
         /// Dragging one handle of a placed mark.
         case resizingMark(index: Int, handle: SelectionHandle, original: Annotation)
+        /// Dragging the A→B ruler.
+        case ruler(anchor: CGPoint)
     }
 
     private let shot: DisplayShot
@@ -86,6 +88,10 @@ final class OverlayRootView: NSView {
     func apply(selectedMark rect: CGRect?) {
         chrome.selectedMark = rect
         window?.invalidateCursorRects(for: self)
+    }
+
+    func apply(ruler: RulerReading?) {
+        chrome.ruler = ruler
     }
 
     func apply(isMeasuring: Bool) {
@@ -152,6 +158,14 @@ final class OverlayRootView: NSView {
         let point = globalPoint(for: event)
         coordinator?.updatePointer(point)
         commitPendingText()
+
+        // In ruler mode a drag measures rather than selects — otherwise there is no way to
+        // measure inside a region you have already selected.
+        if coordinator?.isMeasuring == true {
+            interaction = .ruler(anchor: point)
+            coordinator?.setRuler(RulerReading(from: point, to: point))
+            return
+        }
 
         // A placed mark under the cursor is picked up before anything else — its handles sit
         // inside the selection, where a drag would otherwise move the selection itself.
@@ -234,6 +248,8 @@ final class OverlayRootView: NSView {
                 y: (point.y - grabOffset.height).rounded()
             )
             coordinator?.updateSelection(CGRect(origin: origin, size: size))
+        case .ruler(let anchor):
+            coordinator?.setRuler(RulerReading(from: anchor, to: point))
         case .movingMark(let index, let grabOffset, let original):
             let rect = original.boundingRect
             coordinator?.updateMark(
@@ -279,6 +295,10 @@ final class OverlayRootView: NSView {
             coordinator?.setSettled(true)
         case .movingMark, .resizingMark:
             break  // already applied on every drag step
+        case .ruler(let anchor):
+            // Keep the reading on screen; clear it only if the drag was a stray click.
+            let final = RulerReading(from: anchor, to: point)
+            coordinator?.setRuler(final.isMeaningful ? final : nil)
         case .annotating:
             coordinator?.commitDraft()
         }

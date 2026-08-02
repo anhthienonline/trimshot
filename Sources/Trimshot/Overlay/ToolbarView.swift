@@ -12,6 +12,7 @@ final class ToolbarView: NSVisualEffectView {
     private var colorButtons: [NSButton] = []
     private var widthButtons: [NSButton] = []
     private var undoButton: NSButton?
+    private var measureButton: NSButton?
 
     /// Tool palette. Kept deliberately small — these are the marks people actually make
     /// on a screenshot during review.
@@ -113,6 +114,16 @@ final class ToolbarView: NSVisualEffectView {
         )
         undoButton = undo
         views.append(undo)
+
+        // A ruler on the bar, not just a hidden `M`. A measuring tool that is invisible until
+        // you already know the shortcut is a measuring tool nobody uses.
+        let measure = iconButton(
+            symbol: "ruler",
+            tooltip: "Measure the gap under the cursor (M)",
+            action: #selector(measureTapped)
+        )
+        measureButton = measure
+        views.append(measure)
 
         views.append(
             iconButton(
@@ -226,8 +237,15 @@ final class ToolbarView: NSVisualEffectView {
 
     // MARK: - State
 
-    func update(tool: AnnotationTool?, color: PixelColor, width: CGFloat, canUndo: Bool) {
+    func update(
+        tool: AnnotationTool?,
+        color: PixelColor,
+        width: CGFloat,
+        canUndo: Bool,
+        isMeasuring: Bool
+    ) {
         activeTool = tool
+        if let measureButton { highlight(measureButton, on: isMeasuring) }
         for (candidate, button) in toolButtons {
             highlight(button, on: candidate == tool)
         }
@@ -276,6 +294,7 @@ final class ToolbarView: NSVisualEffectView {
         return collect(self)
     }
 
+    @objc private func measureTapped() { delegate?.toolbarDidToggleMeasure() }
     @objc private func undoTapped() { delegate?.toolbarDidTapUndo() }
     @objc private func ocrTapped() { delegate?.toolbarDidTapRecognizeText() }
     @objc private func copyTapped() { delegate?.toolbarDidTapCopy() }

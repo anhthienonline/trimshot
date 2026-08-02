@@ -28,11 +28,16 @@ First public build.
 - Magnifier with an 8× pixel grid, following the cursor, reading the frozen bitmap.
 - Eyedropper with hex readout; `C` copies it.
 
-### Measuring gaps
+### Ruler
 
-- `M` enters measure mode: the overlay detects the near-uniform run the cursor sits inside,
-  horizontally and vertically, and dimensions it in both units. Pointing at the space between
-  a button and its label gives you the spacing without dragging anything by eye.
+- `M`, or the ruler button on the toolbar, enters ruler mode.
+- **Drag A→B** for a Photoshop-style reading: direct distance, horizontal and vertical
+  components, and the angle, with dashed legs showing the decomposition. The reading stays up
+  after the drag.
+- **Hover** instead of dragging: the overlay detects the near-uniform run the cursor sits inside,
+  the overlay detects the near-uniform run the cursor sits inside, horizontally and
+  vertically, and dimensions it in both units — the spacing between a button and its label
+  without aiming at two edges by eye.
 - Edge detection walks a single extracted luminance line rather than sampling pixel by pixel,
   and ignores gradients and anti-aliasing below a 0.10 luminance threshold.
 

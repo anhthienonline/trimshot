@@ -516,4 +516,45 @@ Check.suite("Annotation editing") {
     Check.expectEqual(store.annotations.count, 1, "out-of-range indices are ignored, not crashes")
 }
 
+Check.suite("RulerReading") {
+    // A 3-4-5 triangle, so the distance is exact rather than approximately right.
+    let m = RulerReading(from: CGPoint(x: 10, y: 10), to: CGPoint(x: 40, y: 50))
+    Check.expectEqual(m.dx, 30, "dx is the signed horizontal component")
+    Check.expectEqual(m.dy, 40, "dy is the signed vertical component, positive upward")
+    Check.expectEqual(m.distance, 50, "3-4-5 scaled by ten gives exactly 50")
+    Check.expectEqual(m.elbow, CGPoint(x: 40, y: 10), "the elbow goes along x first, then y")
+
+    Check.expectEqual(
+        RulerReading(from: .zero, to: CGPoint(x: 10, y: 0)).angle, 0,
+        "due right is 0°"
+    )
+    Check.expectEqual(
+        RulerReading(from: .zero, to: CGPoint(x: 0, y: 10)).angle, 90,
+        "straight up is +90° in a Y-up space"
+    )
+    Check.expectEqual(
+        RulerReading(from: .zero, to: CGPoint(x: 0, y: -10)).angle, -90,
+        "straight down is -90°"
+    )
+    Check.expectEqual(
+        RulerReading(from: .zero, to: CGPoint(x: -10, y: 0)).angle, 180,
+        "due left is 180°"
+    )
+    Check.expectEqual(
+        RulerReading(from: .zero, to: .zero).angle, 0,
+        "a zero-length measurement reports 0° instead of NaN"
+    )
+
+    let diagonal = RulerReading(from: .zero, to: CGPoint(x: 10, y: 10))
+    Check.expect(abs(diagonal.angle - 45) < 0.0001, "a 45° diagonal reads 45°")
+
+    Check.expect(!RulerReading(from: .zero, to: CGPoint(x: 0.4, y: 0)).isMeaningful,
+                 "a sub-pixel drag is not a measurement")
+    Check.expect(RulerReading(from: .zero, to: CGPoint(x: 3, y: 4)).isMeaningful,
+                 "a real drag is")
+
+    Check.expectEqual(RulerReading.pixels(50, scale: 2), 100, "50 pt is 100 px at 2x")
+    Check.expectEqual(RulerReading.pixels(50, scale: 1), 50, "and 50 px at 1x")
+}
+
 Check.finish()

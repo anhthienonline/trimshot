@@ -59,6 +59,11 @@ final class SelectionChromeView: NSView {
         didSet { if selectedMark != oldValue { needsDisplay = true } }
     }
 
+    /// The A→B ruler reading, kept on screen after the drag so it can be read.
+    var ruler: RulerReading? {
+        didSet { if ruler != oldValue { needsDisplay = true } }
+    }
+
     /// Measure mode: report the gap the cursor sits in instead of showing the loupe.
     var isMeasuring = false {
         didSet { if isMeasuring != oldValue { needsDisplay = true } }
@@ -140,7 +145,13 @@ final class SelectionChromeView: NSView {
         }
 
         if isMeasuring {
-            drawMeasurement()
+            // A drag beats a hover: once you have measured A→B, that is the number you want
+            // on screen, not the gap the cursor happens to be over now.
+            if ruler != nil {
+                drawRuler()
+            } else {
+                drawMeasurement()
+            }
         } else if !isSettled, pointerIsOnThisDisplay, let pointer {
             // One or the other: the loupe and the dimension lines both want the area around
             // the cursor, and together they are unreadable.
@@ -182,6 +193,96 @@ final class SelectionChromeView: NSView {
                 vertical: true
             )
         }
+    }
+
+    /// The A→B ruler, laid out like Photoshop's: the direct line, plus dashed legs showing
+    /// the horizontal and vertical components, and a reading of all four numbers.
+    private func drawRuler() {
+        guard let ruler, ruler.isMeaningful else { return }
+
+        let a = toLocal(ruler.from)
+        let b = toLocal(ruler.to)
+        let elbow = toLocal(ruler.elbow)
+        let scale = shot.geometry.scale
+
+        // The W and H legs, dashed so they read as construction lines rather than as the
+        // measurement itself.
+        Style.measure.withAlphaComponent(0.5).setStroke()
+        let legs = NSBezierPath()
+        legs.lineWidth = 1
+        legs.setLineDash([4, 3], count: 2, phase: 0)
+        legs.move(to: a)
+        legs.line(to: elbow)
+        legs.line(to: b)
+        legs.stroke()
+
+        // The measurement itself.
+        Style.measure.setStroke()
+        let line = NSBezierPath()
+        line.lineWidth = 1.5
+        line.move(to: a)
+        line.line(to: b)
+        line.stroke()
+        drawEndTick(at: a, facing: b)
+        drawEndTick(at: b, facing: a)
+
+        let distancePx = RulerReading.pixels(ruler.distance, scale: scale)
+        let primary = scale == 1
+            ? "D \(distancePx) px"
+            : "D \(distancePx) px · \(Int(ruler.distance.rounded())) pt"
+        let secondary = String(
+            format: "W %d  H %d  %.1f°",
+            abs(RulerReading.pixels(ruler.dx, scale: scale)),
+            abs(RulerReading.pixels(ruler.dy, scale: scale)),
+            ruler.angle
+        )
+
+        // Offset perpendicular to the line so the reading never sits on top of it.
+        let length = max(ruler.distance, 0.001)
+        let normal = CGPoint(x: -(b.y - a.y) / length, y: (b.x - a.x) / length)
+        let midpoint = CGPoint(
+            x: (a.x + b.x) / 2 + normal.x * 18,
+            y: (a.y + b.y) / 2 + normal.y * 18
+        )
+        drawReading(primary, secondary, centredOn: midpoint)
+    }
+
+    /// A short segment across the end of the ruler, so the endpoints are unambiguous.
+    private func drawEndTick(at point: CGPoint, facing other: CGPoint) {
+        let dx = other.x - point.x
+        let dy = other.y - point.y
+        let length = max((dx * dx + dy * dy).squareRoot(), 0.001)
+        let normal = CGPoint(x: -dy / length * 5, y: dx / length * 5)
+        let tick = NSBezierPath()
+        tick.lineWidth = 1.5
+        tick.move(to: CGPoint(x: point.x - normal.x, y: point.y - normal.y))
+        tick.line(to: CGPoint(x: point.x + normal.x, y: point.y + normal.y))
+        tick.stroke()
+    }
+
+    private func drawReading(_ primary: String, _ secondary: String, centredOn point: CGPoint) {
+        let bigFont = Style.labelFont
+        let smallFont = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
+        let bigSize = measure(primary, font: bigFont)
+        let smallSize = measure(secondary, font: smallFont)
+        let padding = CGSize(width: 7, height: 4)
+        let box = CGRect(
+            x: point.x - max(bigSize.width, smallSize.width) / 2 - padding.width,
+            y: point.y - (bigSize.height + smallSize.height) / 2 - padding.height,
+            width: max(bigSize.width, smallSize.width) + padding.width * 2,
+            height: bigSize.height + smallSize.height + padding.height * 2
+        )
+
+        Style.measure.setFill()
+        NSBezierPath(roundedRect: box, xRadius: 4, yRadius: 4).fill()
+        (primary as NSString).draw(
+            at: CGPoint(x: box.midX - bigSize.width / 2, y: box.minY + padding.height + smallSize.height),
+            withAttributes: [.font: bigFont, .foregroundColor: NSColor.white]
+        )
+        (secondary as NSString).draw(
+            at: CGPoint(x: box.midX - smallSize.width / 2, y: box.minY + padding.height),
+            withAttributes: [.font: smallFont, .foregroundColor: NSColor.white.withAlphaComponent(0.75)]
+        )
     }
 
     private func sizeText(pixels: Int, scale: CGFloat) -> String {

@@ -36,6 +36,8 @@ final class OverlayCoordinator {
     /// Measure mode: the overlay reports the gap the cursor sits in instead of waiting for a
     /// selection. Toggled with M.
     private(set) var isMeasuring = false
+    /// The A→B ruler drag, kept after mouse-up so the reading can be read.
+    private(set) var ruler: RulerReading?
     /// The bitmap the image tool will place, loaded when the tool is selected so the drag
     /// itself already previews the real picture.
     private(set) var pendingImage: AnnotationImage?
@@ -134,6 +136,7 @@ final class OverlayCoordinator {
         draft = nil
         activeTool = nil
         isMeasuring = false
+        ruler = nil
         pendingImage = nil
         selectedMark = nil
 
@@ -176,11 +179,26 @@ final class OverlayCoordinator {
         }
     }
 
+    func setRuler(_ measurement: RulerReading?) {
+        ruler = measurement
+        for window in windows {
+            window.rootView?.apply(ruler: measurement)
+        }
+    }
+
     func toggleMeasuring() {
         isMeasuring.toggle()
+        // Leaving a stale reading behind would be a number with nothing to do with the mode
+        // you are now in.
+        if !isMeasuring { setRuler(nil) }
         for window in windows {
             window.rootView?.apply(isMeasuring: isMeasuring)
         }
+        refreshToolbar()
+        HUD.show(
+            isMeasuring ? "Ruler on — hover to read a gap, drag to measure A→B" : "Ruler off",
+            duration: .milliseconds(1600)
+        )
     }
 
     func selectWholeDisplay(_ geometry: DisplayGeometry) {
@@ -271,7 +289,8 @@ final class OverlayCoordinator {
             tool: activeTool,
             color: strokeColor,
             width: strokeWidth,
-            canUndo: annotations.canUndo
+            canUndo: annotations.canUndo,
+            isMeasuring: isMeasuring
         )
         position(panel, for: selection)
         panel.orderFrontRegardless()
@@ -302,7 +321,8 @@ final class OverlayCoordinator {
             tool: activeTool,
             color: strokeColor,
             width: strokeWidth,
-            canUndo: annotations.canUndo
+            canUndo: annotations.canUndo,
+            isMeasuring: isMeasuring
         )
     }
 
@@ -475,6 +495,10 @@ extension OverlayCoordinator: ToolbarDelegate {
     func toolbarDidSelect(width: CGFloat) {
         strokeWidth = width
         refreshToolbar()
+    }
+
+    func toolbarDidToggleMeasure() {
+        toggleMeasuring()
     }
 
     func toolbarDidTapUndo() {

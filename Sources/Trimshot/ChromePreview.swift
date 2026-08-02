@@ -77,6 +77,7 @@ enum ChromePreview {
             ("chrome-annotated", true, marks, false),
             ("chrome-measuring", false, [], true),
             ("chrome-placed-image", true, [imageOnly(in: selection)], false),
+            ("chrome-ruler", false, [], true),
         ]
 
         for state in states {
@@ -409,6 +410,11 @@ enum ChromePreview {
     /// The chrome cannot simply be asked to cache its display: the screenshot lives in
     /// the root view's backing *layer*, which `cacheDisplay(in:to:)` does not include. So
     /// the bitmap is drawn first and the view is rendered on top of it.
+    /// Where the sample ruler is drawn when there is no selection to hang it off.
+    private static var selectionForRuler: CGRect {
+        CGRect(x: 300, y: 300, width: 420, height: 240)
+    }
+
     private static func render(
         shot: DisplayShot,
         selection: CGRect?,
@@ -448,6 +454,13 @@ enum ChromePreview {
         chrome.isSettled = isSettled
         chrome.annotations = annotations
         chrome.isMeasuring = measuring
+        // A diagonal drag, so the legs, the angle and all four numbers are exercised.
+        chrome.ruler = measuring
+            ? RulerReading(
+                from: CGPoint(x: selectionForRuler.minX + 40, y: selectionForRuler.minY + 40),
+                to: CGPoint(x: selectionForRuler.maxX - 30, y: selectionForRuler.maxY - 60)
+              )
+            : nil
         // The placed-image state shows what the editable frame looks like.
         chrome.selectedMark = annotations.first(where: { $0.tool == .image })?.boundingRect
 
