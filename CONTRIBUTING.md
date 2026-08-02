@@ -53,6 +53,11 @@ Collected because each of these cost real debugging time:
   — invisible, while `runModal()` froze the app with nothing on screen to explain it. Every
   one was silent. Anything new that shows a window during a capture gets its level from
   `OverlayLevel`.
+- **`NSSavePanel.runModal()` does not work while the capture overlay is up.** Measured: it
+  returns `.cancel` immediately without ever presenting, and while it runs, blocks scheduled
+  on the main queue are never serviced. Use `begin(completionHandler:)`, which presents the
+  same panel as an ordinary window — visible, unoccluded and key, measured in the same
+  situation.
 - **Vision's Vietnamese tag is `vi-VT`, not `vi-VN`.** The sensible-looking one is silently
   ignored, leaving English-only recognition. Recognition revision 3 is also required.
 - **macOS 26 wraps every legacy `.icns` in its own squircle.** Icon artwork is full-bleed for

@@ -331,16 +331,6 @@ final class OverlayCoordinator {
         }
     }
 
-    /// A file picker, because "insert an image" means choosing one.
-    ///
-    /// Reading the pasteboard first would be quietly wrong in *this* app: the clipboard very
-    /// often holds a capture taken a minute ago, so the tool would insert the wrong picture
-    /// with nothing to indicate it had. The pasteboard is still available, but as an explicit
-    /// ⌘V rather than a silent default.
-    private func loadImageToPlace() -> AnnotationImage? {
-        FileSaver.chooseImage().map(AnnotationImage.init)
-    }
-
     /// Swaps in whatever image is on the pasteboard while the image tool is armed.
     func pasteImageToPlace() {
         guard activeTool == .image else { return }
@@ -364,22 +354,30 @@ final class OverlayCoordinator {
 extension OverlayCoordinator: ToolbarDelegate {
 
     func toolbarDidSelect(tool: AnnotationTool?) {
-        // Load the picture up front rather than on mouse-up: the drag should preview the real
-        // image, and finding out the clipboard was empty *after* placing it is a bad trade.
+        // The picture is chosen before the drag so the drag itself previews the real image.
+        // The picker is asynchronous, so the tool arms in the callback rather than here.
         if tool == .image {
-            guard let image = loadImageToPlace() else {
-                // Nothing to place, so the tool does not arm — but the toolbar has to be told,
-                // or the button it just highlighted stays highlighted for a tool that is off.
-                // Cancelling the picker is a normal outcome, not an error worth a warning.
-                HUD.show("No image chosen", duration: .milliseconds(1200))
-                refreshToolbar()
-                return
+            FileSaver.chooseImage { [weak self] chosen in
+                guard let self, self.isActive else { return }
+                guard let chosen else {
+                    // Cancelling is a normal outcome, not an error worth a warning — but the
+                    // toolbar still has to be told, or the button it just highlighted stays
+                    // highlighted for a tool that never armed.
+                    HUD.show("No image chosen", duration: .milliseconds(1200))
+                    self.refreshToolbar()
+                    return
+                }
+                self.pendingImage = AnnotationImage(chosen)
+                self.arm(.image)
             }
-            pendingImage = image
-        } else {
-            pendingImage = nil
+            return
         }
 
+        pendingImage = nil
+        arm(tool)
+    }
+
+    private func arm(_ tool: AnnotationTool?) {
         activeTool = tool
         refreshToolbar()
         for window in windows {

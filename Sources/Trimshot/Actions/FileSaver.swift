@@ -60,9 +60,17 @@ enum FileSaver {
         return url
     }
 
-    /// Asks for an image file. Used by the image tool when the pasteboard has nothing.
+    /// Asks for an image file, without a modal run loop.
+    ///
+    /// `runModal()` cannot be used while the capture overlay is up. Measured: it returns
+    /// `.cancel` immediately without ever presenting, and for as long as it runs, blocks
+    /// scheduled on the main queue are never serviced — the modal loop starves them. The
+    /// visible result is a button that does nothing at all.
+    ///
+    /// `begin(completionHandler:)` presents the same panel as an ordinary window. Measured in
+    /// the same situation: visible, unoccluded, and key.
     @MainActor
-    static func chooseImage() -> CGImage? {
+    static func chooseImage(completion: @escaping (CGImage?) -> Void) {
         NSApp.activate(ignoringOtherApps: true)
         let panel = NSOpenPanel()
         raiseAboveOverlay(panel)
@@ -71,10 +79,21 @@ enum FileSaver {
         panel.allowsMultipleSelection = false
         panel.message = "Choose an image to place on the capture"
 
-        guard panel.runModal() == .OK, let url = panel.url,
-              let source = CGImageSourceCreateWithURL(url as CFURL, nil)
-        else { return nil }
-        return CGImageSourceCreateImageAtIndex(source, 0, nil)
+        panel.begin { response in
+            // AppKit calls this on the main thread but types it as a plain closure.
+            MainActor.assumeIsolated {
+                guard
+                    response == .OK,
+                    let url = panel.url,
+                    let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+                    let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+                else {
+                    completion(nil)
+                    return
+                }
+                completion(image)
+            }
+        }
     }
 
     private static func encode(_ image: CGImage, as format: ImageFormat) throws -> Data {
