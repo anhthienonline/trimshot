@@ -45,14 +45,15 @@ without a new case in `TrimshotChecks/main.swift` is not finished.
 
 Collected because each of these cost real debugging time:
 
-- **Window levels are the most repeated bug in this codebase — three so far.** They all go
+- **Window levels are the most repeated bug in this codebase — four so far.** They all go
   through `OverlayLevel` now, and `--render-chrome` asserts the ordering. The three:
   `isFloatingPanel = true` silently resets `NSWindow.level`, so the toolbar rendered under the
   overlay; the HUD sat at `.statusBar`, a thousand levels below the overlay it had to appear
   over; and an `NSOpenPanel` defaults to level 0, so a file picker opened behind the overlay
   — invisible, while `runModal()` froze the app with nothing on screen to explain it. Every
   one was silent. Anything new that shows a window during a capture gets its level from
-  `OverlayLevel`.
+  `OverlayLevel`. The fourth was AppKit's own tooltips, which draw in a private window at an
+  ordinary level and cannot be raised — hence `TipWindow`.
 - **`NSSavePanel.runModal()` does not work while the capture overlay is up.** Measured: it
   returns `.cancel` immediately without ever presenting, and while it runs, blocks scheduled
   on the main queue are never serviced. Use `begin(completionHandler:)`, which presents the

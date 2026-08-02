@@ -194,52 +194,47 @@ final class SelectionChromeView: NSView {
         }
     }
 
-    /// The A→B ruler, laid out like Photoshop's: the direct line, plus dashed legs showing
-    /// the horizontal and vertical components, and a reading of all four numbers.
+    /// The ruler box: a rectangle spanning the drag, with a dimension line on each axis.
+    ///
+    /// Not the direct A→B line. Drawing the diagonal plus its two components made a right
+    /// triangle, and in UI work the diagonal is almost never the number wanted — the useful
+    /// question is how wide and how tall.
     private func drawRuler() {
         guard let ruler, ruler.isMeaningful else { return }
 
-        let a = toLocal(ruler.from)
-        let b = toLocal(ruler.to)
-        let elbow = toLocal(ruler.elbow)
+        let rect = toLocal(ruler.rect)
 
-        // The W and H legs, dashed so they read as construction lines rather than as the
-        // measurement itself.
-        Style.measure.withAlphaComponent(0.5).setStroke()
-        let legs = NSBezierPath()
-        legs.lineWidth = 1
-        legs.setLineDash([4, 3], count: 2, phase: 0)
-        legs.move(to: a)
-        legs.line(to: elbow)
-        legs.line(to: b)
-        legs.stroke()
-
-        // The measurement itself.
         Style.measure.setStroke()
-        let line = NSBezierPath()
-        line.lineWidth = 1.5
-        line.move(to: a)
-        line.line(to: b)
-        line.stroke()
-        drawEndTick(at: a, facing: b)
-        drawEndTick(at: b, facing: a)
+        let outline = NSBezierPath(rect: rect)
+        outline.lineWidth = 1
+        outline.stroke()
 
-        let primary = "D " + Units.length(ruler.distance)
-        let secondary = String(
-            format: "W %d  H %d  %.1f°",
-            abs(Int(ruler.dx.rounded())),
-            abs(Int(ruler.dy.rounded())),
-            ruler.angle
+        // Corner ticks, so the two endpoints of the drag stay identifiable inside the box.
+        drawEndTick(at: CGPoint(x: rect.minX, y: rect.minY), facing: CGPoint(x: rect.maxX, y: rect.minY))
+        drawEndTick(at: CGPoint(x: rect.maxX, y: rect.maxY), facing: CGPoint(x: rect.minX, y: rect.maxY))
+
+        // Width, dimensioned below the box — flipped above when it is against the bottom edge.
+        let below = rect.minY - 20 > bounds.minY
+        let widthY = below ? rect.minY - 20 : rect.maxY + 20
+        drawDimension(
+            from: CGPoint(x: rect.minX, y: widthY),
+            to: CGPoint(x: rect.maxX, y: widthY),
+            text: Units.length(ruler.rect.width),
+            vertical: false
         )
 
-        // Offset perpendicular to the line so the reading never sits on top of it.
-        let length = max(ruler.distance, 0.001)
-        let normal = CGPoint(x: -(b.y - a.y) / length, y: (b.x - a.x) / length)
-        let midpoint = CGPoint(
-            x: (a.x + b.x) / 2 + normal.x * 18,
-            y: (a.y + b.y) / 2 + normal.y * 18
+        // Height, dimensioned to the left, flipping right near the screen edge.
+        let onLeft = rect.minX - 20 > bounds.minX
+        let heightX = onLeft ? rect.minX - 20 : rect.maxX + 20
+        drawDimension(
+            from: CGPoint(x: heightX, y: rect.minY),
+            to: CGPoint(x: heightX, y: rect.maxY),
+            text: Units.length(ruler.rect.height),
+            vertical: true
         )
-        drawReading(primary, secondary, centredOn: midpoint)
+
+        // The pair, in the middle, matching how the selection reports its own size.
+        drawReading(Units.size(ruler.rect.size), centredOn: CGPoint(x: rect.midX, y: rect.midY))
     }
 
     /// A short segment across the end of the ruler, so the endpoints are unambiguous.
@@ -255,28 +250,22 @@ final class SelectionChromeView: NSView {
         tick.stroke()
     }
 
-    private func drawReading(_ primary: String, _ secondary: String, centredOn point: CGPoint) {
-        let bigFont = Style.labelFont
-        let smallFont = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
-        let bigSize = measure(primary, font: bigFont)
-        let smallSize = measure(secondary, font: smallFont)
+    private func drawReading(_ text: String, centredOn point: CGPoint) {
+        let font = Style.labelFont
+        let size = measure(text, font: font)
         let padding = CGSize(width: 7, height: 4)
         let box = CGRect(
-            x: point.x - max(bigSize.width, smallSize.width) / 2 - padding.width,
-            y: point.y - (bigSize.height + smallSize.height) / 2 - padding.height,
-            width: max(bigSize.width, smallSize.width) + padding.width * 2,
-            height: bigSize.height + smallSize.height + padding.height * 2
+            x: point.x - size.width / 2 - padding.width,
+            y: point.y - size.height / 2 - padding.height,
+            width: size.width + padding.width * 2,
+            height: size.height + padding.height * 2
         )
 
         Style.measure.setFill()
         NSBezierPath(roundedRect: box, xRadius: 4, yRadius: 4).fill()
-        (primary as NSString).draw(
-            at: CGPoint(x: box.midX - bigSize.width / 2, y: box.minY + padding.height + smallSize.height),
-            withAttributes: [.font: bigFont, .foregroundColor: NSColor.white]
-        )
-        (secondary as NSString).draw(
-            at: CGPoint(x: box.midX - smallSize.width / 2, y: box.minY + padding.height),
-            withAttributes: [.font: smallFont, .foregroundColor: NSColor.white.withAlphaComponent(0.75)]
+        (text as NSString).draw(
+            at: CGPoint(x: box.minX + padding.width, y: box.minY + padding.height),
+            withAttributes: [.font: font, .foregroundColor: NSColor.white]
         )
     }
 

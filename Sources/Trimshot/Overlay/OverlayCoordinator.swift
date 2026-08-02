@@ -14,7 +14,7 @@ enum OverlayAction {
 /// display and end on another — every view renders the same global rect in its own
 /// coordinates.
 @MainActor
-final class OverlayCoordinator {
+final class OverlayCoordinator: NSObject {
     static let shared = OverlayCoordinator()
 
     private(set) var isActive = false
@@ -45,11 +45,12 @@ final class OverlayCoordinator {
     /// handles are there immediately rather than after a discovery step.
     private(set) var selectedMark: Int?
     private(set) var strokeColor = PixelColor(red: 255, green: 59, blue: 48)
-    private(set) var strokeWidth: CGFloat = 4
+    /// The thinnest of the three. A heavy default covers the detail you are annotating.
+    private(set) var strokeWidth: CGFloat = 2
 
     private var toolbar: ToolbarWindow?
 
-    private init() {}
+    private override init() { super.init() }
 
     // MARK: - Session lifecycle
 
@@ -502,6 +503,36 @@ extension OverlayCoordinator: ToolbarDelegate {
 
     func toolbarDidToggleMeasure() {
         toggleMeasuring()
+    }
+
+    func toolbarDidPickCustomColor() {
+        let panel = NSColorPanel.shared
+        // Same trap as the file picker: a panel defaults to level 0 and the overlay sits at
+        // .screenSaver, so without this it opens behind the capture, invisible.
+        panel.level = OverlayLevel.panel
+        panel.isContinuous = true
+        panel.showsAlpha = false
+        panel.color = NSColor(
+            srgbRed: CGFloat(strokeColor.red) / 255,
+            green: CGFloat(strokeColor.green) / 255,
+            blue: CGFloat(strokeColor.blue) / 255,
+            alpha: 1
+        )
+        panel.setTarget(self)
+        panel.setAction(#selector(customColorChanged(_:)))
+        panel.orderFrontRegardless()
+    }
+
+    @objc private func customColorChanged(_ sender: NSColorPanel) {
+        // sRGB explicitly: a colour picked in another space would round-trip differently and
+        // the hex the user chose is the hex they expect to get.
+        guard let picked = sender.color.usingColorSpace(.sRGB) else { return }
+        strokeColor = PixelColor(
+            red: UInt8((picked.redComponent * 255).rounded()),
+            green: UInt8((picked.greenComponent * 255).rounded()),
+            blue: UInt8((picked.blueComponent * 255).rounded())
+        )
+        refreshToolbar()
     }
 
     func toolbarDidTapUndo() {

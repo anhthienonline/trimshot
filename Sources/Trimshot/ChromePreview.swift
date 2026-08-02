@@ -130,6 +130,10 @@ enum ChromePreview {
         let f = panel.frame
         print("  window frame             (\(Int(f.minX)), \(Int(f.minY)), \(Int(f.width))×\(Int(f.height)))")
         print("  window level             \(panel.level.rawValue)  (overlay \(OverlayLevel.capture.rawValue), panels \(OverlayLevel.panel.rawValue))")
+        guard panel.acceptsMouseMovedEvents else {
+            print("  ✗ the toolbar does not accept mouseMoved — hover tips will never fire")
+            return false
+        }
         guard OverlayLevel.isOrderedCorrectly else {
             print("  ✗ OverlayLevel ordering is broken — something will render invisibly")
             return false

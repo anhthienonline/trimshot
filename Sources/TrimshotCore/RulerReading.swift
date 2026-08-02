@@ -32,8 +32,20 @@ public struct RulerReading: Equatable, Sendable {
         return atan2(dy, dx) * 180 / .pi
     }
 
-    /// The corner a Photoshop-style ruler draws its two legs through: along x first, then y.
-    public var elbow: CGPoint { CGPoint(x: to.x, y: from.y) }
+    /// The box the drag spans, normalised so dragging in any direction gives a positive rect.
+    ///
+    /// This is what gets drawn. An earlier version drew the direct A→B line plus two legs for
+    /// the components, which together read as a right triangle — and in UI work the diagonal
+    /// is almost never the number wanted. `distance` and `angle` stay available for a caller
+    /// that does want them.
+    public var rect: CGRect {
+        CGRect(
+            x: min(from.x, to.x),
+            y: min(from.y, to.y),
+            width: abs(dx),
+            height: abs(dy)
+        )
+    }
 
     public var isMeaningful: Bool { distance >= 1 }
 }

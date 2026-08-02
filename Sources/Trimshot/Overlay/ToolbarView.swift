@@ -12,6 +12,7 @@ final class ToolbarView: NSVisualEffectView {
     private var colorButtons: [NSButton] = []
     private var widthButtons: [NSButton] = []
     private var undoButton: NSButton?
+    private var customColorButton: NSButton?
     private var measureButton: NSButton?
 
     /// Tool palette. Kept deliberately small — these are the marks people actually make
@@ -24,7 +25,7 @@ final class ToolbarView: NSVisualEffectView {
         (.ellipse, "circle", "Ellipse"),
         (.highlighter, "highlighter", "Highlighter"),
         (.text, "textformat", "Text"),
-        (.pixelate, "square.grid.3x3.fill", "Pixelate — hide sensitive content"),
+        (.pixelate, "checkerboard.rectangle", "Pixelate — hide sensitive content"),
         (.image, "photo", "Place an image — choose a file, or ⌘V for the clipboard"),
     ]
 
@@ -75,6 +76,52 @@ final class ToolbarView: NSVisualEffectView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("not used") }
 
+    // MARK: - Hover tips
+
+    private let tip = TipWindow()
+    private var hoveredButton: NSButton?
+
+    /// One tracking area across the whole bar rather than one per button: 25 buttons means 25
+    /// areas to keep in sync, and a hit test on mouse-move is simpler and cannot drift.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(
+            NSTrackingArea(
+                rect: bounds,
+                // .activeAlways because the app is an accessory and the panel never becomes
+                // key — .activeInKeyWindow would never fire.
+                options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways],
+                owner: self
+            )
+        )
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let button = allButtons().first { $0.frame.contains(point) }
+        guard button !== hoveredButton else { return }
+        hoveredButton = button
+
+        guard let button, let text = button.toolTip, let window else {
+            tip.hide()
+            return
+        }
+        let inScreen = window.convertToScreen(convert(button.frame, to: nil))
+        tip.show(text, above: inScreen)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        hoveredButton = nil
+        tip.hide()
+    }
+
+    /// Called when the bar goes away, so a tip cannot outlive the toolbar it describes.
+    func hideTip() {
+        hoveredButton = nil
+        tip.hide()
+    }
+
     // MARK: - Construction
 
     private func buildSections() -> [NSView] {
@@ -95,6 +142,15 @@ final class ToolbarView: NSVisualEffectView {
             colorButtons.append(button)
             views.append(button)
         }
+
+        // Anything outside the six presets. Highlighted when the current colour is one.
+        let custom = iconButton(
+            symbol: "paintpalette",
+            tooltip: "Custom colour…",
+            action: #selector(customColorTapped)
+        )
+        customColorButton = custom
+        views.append(custom)
 
         views.append(separator())
 
@@ -249,6 +305,9 @@ final class ToolbarView: NSVisualEffectView {
         for (candidate, button) in toolButtons {
             highlight(button, on: candidate == tool)
         }
+        if let customColorButton {
+            highlight(customColorButton, on: !Self.palette.contains(color))
+        }
         for (index, button) in colorButtons.enumerated() {
             let selected = Self.palette[index] == color
             button.layer?.borderWidth = selected ? 2.5 : 1
@@ -294,6 +353,7 @@ final class ToolbarView: NSVisualEffectView {
         return collect(self)
     }
 
+    @objc private func customColorTapped() { delegate?.toolbarDidPickCustomColor() }
     @objc private func measureTapped() { delegate?.toolbarDidToggleMeasure() }
     @objc private func undoTapped() { delegate?.toolbarDidTapUndo() }
     @objc private func ocrTapped() { delegate?.toolbarDidTapRecognizeText() }

@@ -32,9 +32,8 @@ First public build.
 ### Ruler
 
 - `M`, or the ruler button on the toolbar, enters ruler mode.
-- **Drag A→B** for a Photoshop-style reading: direct distance, horizontal and vertical
-  components, and the angle, with dashed legs showing the decomposition. The reading stays up
-  after the drag.
+- **Drag** for a measured box: a rectangle with a dimension line on each axis and its `W × H`
+  in the middle, held on screen after the drag.
 - **Hover** instead of dragging: the overlay detects the near-uniform run the cursor sits inside,
   the overlay detects the near-uniform run the cursor sits inside, horizontally and
   vertically, and dimensions it in both units — the spacing between a button and its label
@@ -49,7 +48,10 @@ First public build.
   keep their aspect ratio inside the rect you drag.
 - A placed image arrives centred in the selection and selected, and can be dragged, resized
   by its handles, or removed with `⌫`.
-- Six colours, three stroke widths, undo and redo.
+- Six colours plus a custom colour picker, three stroke widths defaulting to the thinnest,
+  undo and redo.
+- Every toolbar button has a hover tip. AppKit's own tooltips cannot be used: they draw in a
+  window at an ordinary level, so above the capture overlay they are invisible.
 - The live preview and the exported file go through one renderer, so they cannot drift —
   measured agreement 0.23/255.
 

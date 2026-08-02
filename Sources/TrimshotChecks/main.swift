@@ -522,7 +522,16 @@ Check.suite("RulerReading") {
     Check.expectEqual(m.dx, 30, "dx is the signed horizontal component")
     Check.expectEqual(m.dy, 40, "dy is the signed vertical component, positive upward")
     Check.expectEqual(m.distance, 50, "3-4-5 scaled by ten gives exactly 50")
-    Check.expectEqual(m.elbow, CGPoint(x: 40, y: 10), "the elbow goes along x first, then y")
+    Check.expectEqual(
+        m.rect, CGRect(x: 10, y: 10, width: 30, height: 40),
+        "the rect spans the drag"
+    )
+    // Dragging up-left has to give the same box as dragging down-right.
+    Check.expectEqual(
+        RulerReading(from: CGPoint(x: 40, y: 50), to: CGPoint(x: 10, y: 10)).rect,
+        m.rect,
+        "the rect is normalised whichever way you drag"
+    )
 
     Check.expectEqual(
         RulerReading(from: .zero, to: CGPoint(x: 10, y: 0)).angle, 0,

@@ -77,8 +77,9 @@ launch.
 | `esc` / right-click | cancel |
 
 Once a selection settles, a toolbar appears with freehand, line, arrow, rectangle,
-ellipse, highlighter, text, pixelate and place-an-image, plus colour, stroke width, undo, OCR, copy, save
-and cancel. Picking a tool turns the selection into a canvas; tapping the active tool
+ellipse, highlighter, text, pixelate and place-an-image, plus six colours and a custom colour
+picker, stroke width, undo, the ruler, OCR, copy, save and cancel. Hover any button for a
+tip. Picking a tool turns the selection into a canvas; tapping the active tool
 again returns to resizing it.
 
 Choosing an image drops it into the middle of the selection right away, selected, with a
@@ -97,9 +98,12 @@ rest. A saved PNG is still 2× those numbers on a Retina display, as every macOS
 
 **Ruler mode** does two things. Hovering reports the near-uniform run the cursor sits inside,
 horizontally and vertically — point at the space between a button and its label and read the
-spacing. Dragging measures from A to B the way Photoshop's ruler does: the direct distance,
-its horizontal and vertical components, and the angle, with dashed legs showing the
-decomposition. The reading stays on screen after you let go.
+spacing. Dragging gives a measured box: a rectangle with a dimension line on each axis and its
+`W × H` in the middle. The reading stays on screen after you let go.
+
+It draws a rectangle rather than the direct A→B line Photoshop uses. Drawing the diagonal plus
+its two components made a right triangle, and in UI work the diagonal is almost never the
+number wanted — how wide and how tall is.
 
 The **save format** setting governs saved files only. Copies are always PNG: a JPEG on the
 pasteboard would put compression artefacts into every pasted capture, and colours and edges

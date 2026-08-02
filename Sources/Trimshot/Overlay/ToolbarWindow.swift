@@ -6,6 +6,7 @@ protocol ToolbarDelegate: AnyObject {
     func toolbarDidSelect(tool: AnnotationTool?)
     func toolbarDidSelect(color: PixelColor)
     func toolbarDidSelect(width: CGFloat)
+    func toolbarDidPickCustomColor()
     func toolbarDidToggleMeasure()
     func toolbarDidTapUndo()
     func toolbarDidTapRecognizeText()
@@ -42,6 +43,9 @@ final class ToolbarWindow: NSPanel {
         hidesOnDeactivate = false
         becomesKeyOnlyIfNeeded = true
         sharingType = .none
+        // The hover tips depend on mouseMoved reaching the bar, and this defaults to false —
+        // the same omission that froze the magnifier for a whole session.
+        acceptsMouseMovedEvents = true
 
         // Order matters, and getting it wrong hides the toolbar completely: setting
         // `isFloatingPanel` overwrites `level` with `.floating` (3), far below the overlay.
@@ -55,6 +59,11 @@ final class ToolbarWindow: NSPanel {
 
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+
+    override func orderOut(_ sender: Any?) {
+        bar.hideTip()
+        super.orderOut(sender)
+    }
 
     func update(
         tool: AnnotationTool?,
