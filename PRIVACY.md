@@ -24,6 +24,18 @@ it does. With that permission it can read the contents of your displays. It uses
 - read individual pixels from that still for the magnifier and the colour picker;
 - recognise text with Apple's on-device Vision framework when you use OCR.
 
+## No audio, despite what macOS asks for
+
+macOS calls the permission **Screen & System Audio Recording**, and its periodic reminder
+mentions audio, because one grant covers both. Trimshot captures **still images only**. It
+never enables audio capture and has no way to record sound:
+
+```bash
+grep -rn "capturesAudio" Sources/
+```
+
+That returns nothing.
+
 ## Where your captures go
 
 Only where you send them:
@@ -46,10 +58,11 @@ never uploaded to perform it.
 
 ## The website
 
-[trimshot.app](https://trimshot.app) is a single static page on Vercel. It sets no cookies
-and loads no third-party scripts, fonts, or trackers — its Content-Security-Policy blocks
-outbound requests entirely. Vercel records standard server-side request logs, which is
-outside this project's control.
+[trimshot.app](https://trimshot.app) is a single static page on Vercel. It sets no cookies and
+loads no third-party scripts, fonts, or trackers — its Content-Security-Policy blocks outbound
+requests entirely. The host keeps standard server-side request logs that include IP addresses,
+as any web host does; see [Vercel's privacy policy](https://vercel.com/legal/privacy-policy).
+Nothing beyond that is collected, and nothing is combined with anything else.
 
 ## Contact
 

@@ -125,6 +125,14 @@
     <li>recognise text with Apple's on-device Vision framework when you use OCR.</li>
   </ul>
 
+  <h2>No audio, despite what macOS asks for</h2>
+  <p>
+    macOS calls the permission <strong>Screen &amp; System Audio Recording</strong>, and its
+    periodic reminder mentions audio, because that one grant covers both. Trimshot captures
+    <strong>still images only</strong> — it never enables audio capture, and it has no way to
+    record sound. You can check: <code>capturesAudio</code> appears nowhere in the source.
+  </p>
+
   <h2>Where your captures go</h2>
   <p>Only where you send them — the clipboard when you copy, or a folder you chose when you
     save (<code>~/Desktop</code> unless you change it). Nothing is written anywhere else, and
@@ -146,8 +154,10 @@
   <h2>This website</h2>
   <p>
     A static page on Vercel. It sets no cookies and loads no third-party scripts, fonts or
-    trackers — its Content-Security-Policy blocks outbound requests entirely. Vercel keeps
-    standard server-side request logs, which is outside this project's control.
+    trackers — its Content-Security-Policy blocks outbound requests entirely. The host, Vercel, keeps
+    standard server-side request logs that include IP addresses, as any web host does — see
+    <a href="https://vercel.com/legal/privacy-policy">Vercel's privacy policy</a>. Nothing
+    beyond that is collected, and nothing is combined with anything else.
   </p>
 
   <h2>Questions</h2>
