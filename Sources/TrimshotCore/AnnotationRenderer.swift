@@ -15,6 +15,21 @@ public enum AnnotationRenderer {
             .translatedBy(x: -origin.x, y: -origin.y)
     }
 
+    /// Centres `size` inside `rect` at its own aspect ratio, letterboxing rather than
+    /// stretching. A placed screenshot distorted to fit whatever rectangle the user happened
+    /// to drag is worse than useless in a tool people trust for measurements.
+    public static func fit(_ size: CGSize, in rect: CGRect) -> CGRect {
+        guard size.width > 0, size.height > 0, rect.width > 0, rect.height > 0 else { return rect }
+        let scale = min(rect.width / size.width, rect.height / size.height)
+        let fitted = CGSize(width: size.width * scale, height: size.height * scale)
+        return CGRect(
+            x: rect.midX - fitted.width / 2,
+            y: rect.midY - fitted.height / 2,
+            width: fitted.width,
+            height: fitted.height
+        )
+    }
+
     /// Draws annotations into `context`, which must be in a Y-up coordinate space.
     ///
     /// `pixelateSource` supplies the bitmap the redaction tool samples; without it,
@@ -32,6 +47,10 @@ public enum AnnotationRenderer {
             // drawn through the same transformed CTM as the vector tools.
             if annotation.tool == .pixelate {
                 drawPixelate(annotation, in: context, transform: transform, source: pixelateSource)
+                continue
+            }
+            if annotation.tool == .image {
+                drawPlacedImage(annotation, in: context, transform: transform)
                 continue
             }
 
@@ -81,9 +100,26 @@ public enum AnnotationRenderer {
         case .text:
             drawText(annotation, color: color, in: context)
 
-        case .pixelate:
-            break  // handled separately
+        case .pixelate, .image:
+            break  // handled separately — both draw bitmaps, not strokes
         }
+    }
+
+    /// Draws a placed bitmap into the rect it was dragged out over.
+    private static func drawPlacedImage(
+        _ annotation: Annotation,
+        in context: CGContext,
+        transform: CGAffineTransform
+    ) {
+        guard let image = annotation.image?.cgImage else { return }
+        let destination = annotation.boundingRect.applying(transform)
+        guard destination.width >= 1, destination.height >= 1 else { return }
+
+        let size = CGSize(width: image.width, height: image.height)
+        context.saveGState()
+        context.interpolationQuality = .high
+        context.draw(image, in: fit(size, in: destination))
+        context.restoreGState()
     }
 
     private static func drawArrow(_ annotation: Annotation, color: CGColor, in context: CGContext) {

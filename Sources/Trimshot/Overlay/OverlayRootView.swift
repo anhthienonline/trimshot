@@ -337,7 +337,8 @@ final class OverlayRootView: NSView {
                 points: points,
                 color: coordinator.strokeColor,
                 lineWidth: tool == .pixelate ? max(6, coordinator.strokeWidth * 2)
-                    : coordinator.strokeWidth
+                    : coordinator.strokeWidth,
+                image: tool == .image ? coordinator.pendingImage : nil
             )
         )
     }

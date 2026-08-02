@@ -200,7 +200,34 @@ enum ChromePreview {
             ),
             Annotation(tool: .line, points: [point(200, 185), point(300, 215)], color: yellow, lineWidth: 3),
             Annotation(tool: .text, points: [point(210, 225)], color: red, lineWidth: 20, text: "Tiếng Việt ✓"),
+            // A 2:1 swatch dropped into a square rect — if the aspect ratio were ignored it
+            // would render stretched, which the render makes obvious.
+            Annotation(
+                tool: .image,
+                points: [point(300, 20), point(390, 110)],
+                color: red,
+                lineWidth: 0,
+                image: sampleSwatch().map(AnnotationImage.init)
+            ),
         ]
+    }
+
+    /// A recognisable 2:1 test picture: teal and magenta halves with a white border.
+    private static func sampleSwatch() -> CGImage? {
+        guard
+            let space = CGColorSpace(name: CGColorSpace.sRGB),
+            let ctx = CGContext(data: nil, width: 240, height: 120, bitsPerComponent: 8,
+                                bytesPerRow: 0, space: space,
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        ctx.setFillColor(CGColor(srgbRed: 0.37, green: 0.83, blue: 0.87, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: 120, height: 120))
+        ctx.setFillColor(CGColor(srgbRed: 0.85, green: 0.11, blue: 0.38, alpha: 1))
+        ctx.fill(CGRect(x: 120, y: 0, width: 120, height: 120))
+        ctx.setStrokeColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+        ctx.setLineWidth(8)
+        ctx.stroke(CGRect(x: 0, y: 0, width: 240, height: 120))
+        return ctx.makeImage()
     }
 
     /// The live preview and the exported file go through the same renderer, so the inside

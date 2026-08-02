@@ -401,4 +401,55 @@ Check.suite("EdgeDetector.viewSpan") {
     Check.expectEqual(flat.to - flat.from, 80, "at 1x the run is 80 pt wide")
 }
 
+Check.suite("AnnotationRenderer.fit") {
+    // A 200×100 picture dropped into a square: letterboxed, centred, never stretched.
+    let square = CGRect(x: 0, y: 0, width: 100, height: 100)
+    let wide = AnnotationRenderer.fit(CGSize(width: 200, height: 100), in: square)
+    Check.expectEqual(wide, CGRect(x: 0, y: 25, width: 100, height: 50), "a wide image letterboxes vertically")
+    Check.expectEqual(wide.width / wide.height, 2, "and keeps its 2:1 aspect ratio")
+
+    let tall = AnnotationRenderer.fit(CGSize(width: 100, height: 200), in: square)
+    Check.expectEqual(tall, CGRect(x: 25, y: 0, width: 50, height: 100), "a tall image letterboxes horizontally")
+
+    let exact = AnnotationRenderer.fit(CGSize(width: 50, height: 50), in: square)
+    Check.expectEqual(exact, square, "a matching aspect ratio fills the rect")
+
+    // Off-origin rects have to stay centred on the rect, not on the origin.
+    let offset = AnnotationRenderer.fit(
+        CGSize(width: 200, height: 100),
+        in: CGRect(x: 300, y: 400, width: 100, height: 100)
+    )
+    Check.expectEqual(offset.midX, 350, "centred horizontally on the target rect")
+    Check.expectEqual(offset.midY, 450, "and vertically")
+
+    Check.expectEqual(
+        AnnotationRenderer.fit(CGSize(width: 0, height: 0), in: square),
+        square,
+        "a degenerate size falls back to the rect rather than dividing by zero"
+    )
+}
+
+Check.suite("Annotation.image") {
+    let red = PixelColor(red: 255, green: 59, blue: 48)
+    let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    let ctx = CGContext(data: nil, width: 8, height: 4, bitsPerComponent: 8, bytesPerRow: 0,
+                        space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    let picture = AnnotationImage(ctx.makeImage()!)
+
+    let placed = Annotation(tool: .image, points: [CGPoint(x: 0, y: 0), CGPoint(x: 40, y: 20)],
+                            color: red, lineWidth: 0, image: picture)
+    Check.expect(placed.isMeaningful, "a placed image over a real rect is kept")
+
+    let noPicture = Annotation(tool: .image, points: [CGPoint(x: 0, y: 0), CGPoint(x: 40, y: 20)],
+                               color: red, lineWidth: 0)
+    Check.expect(!noPicture.isMeaningful, "the image tool with nothing to place is discarded")
+
+    let clickSized = Annotation(tool: .image, points: [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 1)],
+                                color: red, lineWidth: 0, image: picture)
+    Check.expect(!clickSized.isMeaningful, "a click-sized placement is discarded")
+
+    Check.expect(placed == placed, "identity comparison makes an image annotation Equatable")
+    Check.expect(placed != noPicture, "and distinguishes one with a picture from one without")
+}
+
 Check.finish()

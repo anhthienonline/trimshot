@@ -23,6 +23,17 @@ enum ClipboardService {
         }
     }
 
+    /// An image from the pasteboard, if there is one.
+    static func readImage() -> CGImage? {
+        let pasteboard = NSPasteboard.general
+        guard
+            let image = NSImage(pasteboard: pasteboard),
+            let data = image.tiffRepresentation,
+            let rep = NSBitmapImageRep(data: data)
+        else { return nil }
+        return rep.cgImage
+    }
+
     static func copy(text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()

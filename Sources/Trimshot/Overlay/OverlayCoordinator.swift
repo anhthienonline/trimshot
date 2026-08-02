@@ -36,6 +36,9 @@ final class OverlayCoordinator {
     /// Measure mode: the overlay reports the gap the cursor sits in instead of waiting for a
     /// selection. Toggled with M.
     private(set) var isMeasuring = false
+    /// The bitmap the image tool will place, loaded when the tool is selected so the drag
+    /// itself already previews the real picture.
+    private(set) var pendingImage: AnnotationImage?
     private(set) var strokeColor = PixelColor(red: 255, green: 59, blue: 48)
     private(set) var strokeWidth: CGFloat = 4
 
@@ -55,6 +58,7 @@ final class OverlayCoordinator {
         self.draft = nil
         self.activeTool = nil
         self.isMeasuring = false
+        self.pendingImage = nil
         previousApp = NSWorkspace.shared.frontmostApplication
 
         windows = shots.map { OverlayWindow(shot: $0, coordinator: self) }
@@ -126,6 +130,7 @@ final class OverlayCoordinator {
         draft = nil
         activeTool = nil
         isMeasuring = false
+        pendingImage = nil
 
         // Hand focus back to whatever the user was actually working in.
         previousApp?.activate()
@@ -326,6 +331,14 @@ final class OverlayCoordinator {
         }
     }
 
+    /// Pasteboard first, a file picker as the fallback.
+    private func loadImageToPlace() -> AnnotationImage? {
+        if let fromClipboard = ClipboardService.readImage() {
+            return AnnotationImage(fromClipboard)
+        }
+        return FileSaver.chooseImage().map(AnnotationImage.init)
+    }
+
     private func present(_ error: Error) {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert(error: error)
@@ -338,6 +351,18 @@ final class OverlayCoordinator {
 extension OverlayCoordinator: ToolbarDelegate {
 
     func toolbarDidSelect(tool: AnnotationTool?) {
+        // Load the picture up front rather than on mouse-up: the drag should preview the real
+        // image, and finding out the clipboard was empty *after* placing it is a bad trade.
+        if tool == .image {
+            guard let image = loadImageToPlace() else {
+                HUD.show("Copy an image first, or pick a file", duration: .milliseconds(1800))
+                return
+            }
+            pendingImage = image
+        } else {
+            pendingImage = nil
+        }
+
         activeTool = tool
         refreshToolbar()
         for window in windows {

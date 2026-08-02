@@ -73,7 +73,7 @@ launch.
 | `esc` / right-click | cancel |
 
 Once a selection settles, a toolbar appears with freehand, line, arrow, rectangle,
-ellipse, highlighter, text and pixelate, plus colour, stroke width, undo, OCR, copy, save
+ellipse, highlighter, text, pixelate and place-an-image, plus colour, stroke width, undo, OCR, copy, save
 and cancel. Picking a tool turns the selection into a canvas; tapping the active tool
 again returns to resizing it.
 

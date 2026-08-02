@@ -48,6 +48,22 @@ enum FileSaver {
         return url
     }
 
+    /// Asks for an image file. Used by the image tool when the pasteboard has nothing.
+    @MainActor
+    static func chooseImage() -> CGImage? {
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose an image to place on the capture"
+
+        guard panel.runModal() == .OK, let url = panel.url,
+              let source = CGImageSourceCreateWithURL(url as CFURL, nil)
+        else { return nil }
+        return CGImageSourceCreateImageAtIndex(source, 0, nil)
+    }
+
     private static func encode(_ image: CGImage, as format: ImageFormat) throws -> Data {
         let rep = NSBitmapImageRep(cgImage: image)
         rep.size = NSSize(width: image.width, height: image.height)
