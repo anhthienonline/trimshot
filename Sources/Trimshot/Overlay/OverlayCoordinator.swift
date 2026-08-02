@@ -331,12 +331,25 @@ final class OverlayCoordinator {
         }
     }
 
-    /// Pasteboard first, a file picker as the fallback.
+    /// A file picker, because "insert an image" means choosing one.
+    ///
+    /// Reading the pasteboard first would be quietly wrong in *this* app: the clipboard very
+    /// often holds a capture taken a minute ago, so the tool would insert the wrong picture
+    /// with nothing to indicate it had. The pasteboard is still available, but as an explicit
+    /// ⌘V rather than a silent default.
     private func loadImageToPlace() -> AnnotationImage? {
-        if let fromClipboard = ClipboardService.readImage() {
-            return AnnotationImage(fromClipboard)
+        FileSaver.chooseImage().map(AnnotationImage.init)
+    }
+
+    /// Swaps in whatever image is on the pasteboard while the image tool is armed.
+    func pasteImageToPlace() {
+        guard activeTool == .image else { return }
+        guard let image = ClipboardService.readImage() else {
+            HUD.show("No image on the clipboard", duration: .milliseconds(1500))
+            return
         }
-        return FileSaver.chooseImage().map(AnnotationImage.init)
+        pendingImage = AnnotationImage(image)
+        HUD.show("Using the clipboard image — drag to place it", duration: .milliseconds(1500))
     }
 
     private func present(_ error: Error) {
@@ -357,7 +370,8 @@ extension OverlayCoordinator: ToolbarDelegate {
             guard let image = loadImageToPlace() else {
                 // Nothing to place, so the tool does not arm — but the toolbar has to be told,
                 // or the button it just highlighted stays highlighted for a tool that is off.
-                HUD.show("Copy an image first, or choose a file", duration: .milliseconds(1800))
+                // Cancelling the picker is a normal outcome, not an error worth a warning.
+                HUD.show("No image chosen", duration: .milliseconds(1200))
                 refreshToolbar()
                 return
             }

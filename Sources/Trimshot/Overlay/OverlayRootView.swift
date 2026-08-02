@@ -285,6 +285,13 @@ final class OverlayRootView: NSView {
         case "a":
             coordinator?.selectWholeDisplay(shot.geometry)
             return true
+        case "v":
+            // Only meaningful with the image tool armed; otherwise fall through to the system.
+            if coordinator?.activeTool == .image {
+                coordinator?.pasteImageToPlace()
+                return true
+            }
+            return false
         case "z":
             if event.modifierFlags.contains(.shift) {
                 coordinator?.redoAnnotation()

@@ -38,8 +38,8 @@ First public build.
 
 ### Annotation
 
-- Freehand, line, arrow, rectangle, ellipse, highlighter, text, pixelate, and place
-  an image — from the clipboard, or a file if the clipboard is empty. Placed images
+- Freehand, line, arrow, rectangle, ellipse, highlighter, text, pixelate, and place an
+  image — the tool opens a file picker, or `⌘V` uses the clipboard instead. Placed images
   keep their aspect ratio inside the rect you drag.
 - Six colours, three stroke widths, undo and redo.
 - The live preview and the exported file go through one renderer, so they cannot drift —

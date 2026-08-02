@@ -24,7 +24,7 @@ final class ToolbarView: NSVisualEffectView {
         (.highlighter, "highlighter", "Highlighter"),
         (.text, "textformat", "Text"),
         (.pixelate, "square.grid.3x3.fill", "Pixelate — hide sensitive content"),
-        (.image, "photo", "Place an image — from the clipboard, or pick a file"),
+        (.image, "photo", "Place an image — choose a file, or ⌘V for the clipboard"),
     ]
 
     private static let palette: [PixelColor] = [

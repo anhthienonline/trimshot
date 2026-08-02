@@ -70,6 +70,7 @@ launch.
 | `⌘Z` / `⌘⇧Z` | undo / redo an annotation |
 | `⌘C` / `return` | copy the selection |
 | `⌘S` / `⌘⇧S` | save to the configured folder / via a panel |
+| `⌘V` | with the image tool armed, place the clipboard image instead of a file |
 | `esc` / right-click | cancel |
 
 Once a selection settles, a toolbar appears with freehand, line, arrow, rectangle,
