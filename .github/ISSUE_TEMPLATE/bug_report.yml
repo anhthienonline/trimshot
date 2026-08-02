@@ -1,0 +1,70 @@
+name: Bug report
+description: Something captured wrong, measured wrong, or would not run
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most bugs in a tool like this come down to the display setup — scale factors,
+        monitor arrangement, and negative coordinates are where the coordinate maths gets
+        interesting. The display questions below are the ones that usually solve it.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+      placeholder: |
+        Selected a region on my second monitor. The saved PNG was the right size but
+        showed content from the wrong part of the screen.
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "26.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Mac
+      options:
+        - Apple Silicon
+        - Intel
+    validations:
+      required: true
+
+  - type: textarea
+    id: displays
+    attributes:
+      label: Displays
+      description: >
+        How many, their resolutions, which is the main one, and how they are arranged in
+        System Settings › Displays. Include the scale each is set to if you know it.
+      placeholder: |
+        Built-in 14" at 1512 × 982 (Retina, 2×), main.
+        External 27" at 2560 × 1440 (1×), positioned to the left of the built-in.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Trimshot version
+      description: Menu bar icon › the version is in Settings, or run `defaults read com.thienho.trimshot`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: selfcheck
+    attributes:
+      label: Self-check output (optional, very helpful)
+      description: >
+        If you built from source, `./scripts/self-check.sh` compares a crop against macOS's
+        own `screencapture` and prints your display geometry. Paste the whole output.
+      render: text

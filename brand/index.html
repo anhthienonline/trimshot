@@ -1,0 +1,633 @@
+<title>Trimshot — a precision capture tool for macOS</title>
+
+<style>
+  /* ---- Tokens -------------------------------------------------------------
+     Petrol and cool near-white. Neutrals are biased toward the accent rather
+     than sitting at pure grey. Measure magenta is reserved for dimension
+     annotations and appears nowhere else.                                    */
+  :root {
+    --paper: #f6f7f8;
+    --surface: #ffffff;
+    --ink: #10161a;
+    --muted: #56646c;
+    --hairline: #dde3e6;
+    --petrol: #0e6b78;
+    --measure: #d81b60;
+    --shadow: 0 1px 2px rgba(16, 22, 26, 0.04), 0 8px 24px rgba(16, 22, 26, 0.05);
+
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      system-ui, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --measure-col: 68ch;
+    --step: clamp(3rem, 7vw, 5.5rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0c1215;
+      --surface: #121a1e;
+      --ink: #e7eef0;
+      --muted: #8a9aa1;
+      --hairline: #212d33;
+      --petrol: #5fd3de;
+      --measure: #ff6c99;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+  /* The viewer's own toggle has to win over the OS preference, in both directions. */
+  :root[data-theme="dark"] {
+    --paper: #0c1215;
+    --surface: #121a1e;
+    --ink: #e7eef0;
+    --muted: #8a9aa1;
+    --hairline: #212d33;
+    --petrol: #5fd3de;
+    --measure: #ff6c99;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+  :root[data-theme="light"] {
+    --paper: #f6f7f8;
+    --surface: #ffffff;
+    --ink: #10161a;
+    --muted: #56646c;
+    --hairline: #dde3e6;
+    --petrol: #0e6b78;
+    --measure: #d81b60;
+    --shadow: 0 1px 2px rgba(16, 22, 26, 0.04), 0 8px 24px rgba(16, 22, 26, 0.05);
+  }
+
+  /* ---- Base -------------------------------------------------------------- */
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 5vw, 3rem);
+  }
+
+  a {
+    color: var(--petrol);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--petrol);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    margin: 0;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  code,
+  .mono {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .label {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---- Section rule, borrowed from a drawing sheet -----------------------
+     A full-width hairline with a short run of ruler ticks at the left. Drawn
+     with gradients so the <hr> stays a single element — it cannot hold
+     children.                                                               */
+  .rule {
+    height: 9px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background:
+      repeating-linear-gradient(
+          to right,
+          var(--hairline) 0 1px,
+          transparent 1px 8px
+        )
+        left bottom / 72px 9px no-repeat,
+      linear-gradient(var(--hairline), var(--hairline)) left bottom / 100% 1px no-repeat;
+  }
+
+  /* ---- The dimension-line device ----------------------------------------
+     A hairline with end ticks and a monospace number. It means "this has been
+     measured" — never used as a plain divider.                              */
+  .dim {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--measure);
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  .dim::before,
+  .dim::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.55;
+  }
+  .dim.vertical {
+    flex-direction: column;
+    writing-mode: vertical-rl;
+    align-self: stretch;
+  }
+  .dim.vertical::before,
+  .dim.vertical::after {
+    width: 1px;
+    height: auto;
+  }
+
+  /* ---- Hero -------------------------------------------------------------- */
+  header {
+    padding: clamp(3.5rem, 9vw, 7rem) 0 var(--step);
+  }
+  .lockup {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    color: var(--petrol);
+  }
+  .lockup svg {
+    width: 34px;
+    height: 34px;
+    flex: none;
+  }
+  .lockup span {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+
+  h1 {
+    font-size: clamp(2.25rem, 6vw, 3.75rem);
+    line-height: 1.05;
+    margin: clamp(2rem, 5vw, 3rem) 0 0;
+    max-width: 30ch;
+  }
+  .lede {
+    max-width: var(--measure-col);
+    margin: 1.5rem 0 0;
+    font-size: 1.1875rem;
+    color: var(--muted);
+  }
+
+  /* The mark, measured — the page opens by doing what the app does. */
+  .specimen {
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 0.75rem 1rem;
+    justify-content: start;
+    align-items: center;
+  }
+  .specimen-tile {
+    width: clamp(120px, 22vw, 168px);
+    aspect-ratio: 1;
+    border-radius: 22.5%;
+    background: linear-gradient(#163d45, #07181c);
+    color: #5fd3de;
+    display: grid;
+    place-items: center;
+    box-shadow: var(--shadow);
+  }
+  .specimen-tile svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ---- Generic section --------------------------------------------------- */
+  section {
+    padding-block: var(--step);
+  }
+  .section-head {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 2.25rem;
+  }
+  h2 {
+    font-size: clamp(1.375rem, 3vw, 1.75rem);
+  }
+  .prose {
+    max-width: var(--measure-col);
+  }
+  .prose p {
+    margin: 0 0 1rem;
+  }
+  .prose p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ---- Feature list ----------------------------------------------------- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1px;
+    background: var(--hairline);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .features > div {
+    background: var(--surface);
+    padding: 1.5rem;
+  }
+  .features h3 {
+    font-size: 0.9375rem;
+    margin-bottom: 0.5rem;
+  }
+  .features p {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--muted);
+  }
+
+  /* ---- Data tables ----------------------------------------------------- */
+  .table-scroll {
+    overflow-x: auto;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9375rem;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 0.6875rem 1rem 0.6875rem 0;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: baseline;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  td:first-child {
+    white-space: nowrap;
+  }
+  .keys {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  /* ---- Identity appendix ------------------------------------------------ */
+  /* Six swatches, so a fixed three columns lands as an even 3 × 2 rather than
+     leaving one orphan on its own row the way auto-fit does. */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  @media (max-width: 34rem) {
+    .swatches {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .swatches li {
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  /* Every chip gets a hairline, not just the pale ones: Paper disappears against a light
+     card and Ink disappears against a dark one, so the edge has to be unconditional. */
+  .chip {
+    height: 56px;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  .swatches .meta {
+    padding: 0.625rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+  .swatches .name {
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  .swatches .hex {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    color: var(--muted);
+  }
+
+  .sizes {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .sizes figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .sizes .tile {
+    border-radius: 22.5%;
+    background: linear-gradient(#163d45, #07181c);
+    color: #5fd3de;
+    display: grid;
+    place-items: center;
+  }
+  .sizes figcaption {
+    font-family: var(--mono);
+    font-size: 0.625rem;
+    color: var(--muted);
+  }
+
+  footer {
+    padding-block: var(--step) clamp(3rem, 6vw, 5rem);
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+  footer p {
+    max-width: var(--measure-col);
+    margin: 0.5rem 0 0;
+  }
+</style>
+
+<!--
+  Reusable mark. Inherits `currentColor`, so a parent's `color` recolours it.
+  See brand/mark.svg and brand/BRAND.md for construction and clear space.
+-->
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <defs>
+    <g id="mark" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter">
+      <path d="M22 40 V22 H40" />
+      <path d="M60 22 H78 V40" />
+      <path d="M78 60 V78 H60" />
+      <path d="M40 78 H22 V60" />
+      <g stroke-width="1.7" opacity="0.85">
+        <path d="M41.5 50 H58.5" />
+        <path d="M50 41.5 V58.5" />
+      </g>
+    </g>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="lockup">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#mark" /></svg>
+      <span>Trimshot</span>
+    </div>
+
+    <h1>The screen stops. Then you measure it.</h1>
+
+    <p class="lede">
+      A capture tool for macOS built for design QA. It freezes every display before you
+      draw a selection, so the pixels you crop are exactly the pixels you saw — and it
+      reports them in points <em>and</em> pixels, because a Retina screenshot is neither
+      on its own.
+    </p>
+
+    <div class="specimen">
+      <div class="specimen-tile">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#mark" /></svg>
+      </div>
+      <div class="dim vertical" aria-hidden="true">1024 px</div>
+      <div class="dim" style="grid-column: 1">1024 px</div>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <hr class="rule" />
+      <p class="label">What it does</p>
+      <h2>Capture first, decide second</h2>
+    </div>
+    <div class="prose">
+      <p>
+        Most overlays float above a live screen. Video keeps playing, menus close, the
+        cursor moves — so the region you finally crop is not the region you selected.
+        Trimshot grabs a full-resolution still of every display the instant the
+        shortcut fires and paints the selection UI on top of that frozen frame.
+      </p>
+      <p>
+        The magnifier and the colour picker read the same bitmap that gets cropped, so a
+        hex value is the hex value, not an approximation of a moving target. The crop
+        matches macOS's own <code>screencapture</code> of the identical region to within
+        0.01 of one 8-bit level.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <hr class="rule" />
+      <p class="label">Features</p>
+    </div>
+    <div class="features">
+      <div>
+        <h3>Points and pixels, together</h3>
+        <p>
+          <span class="mono">840 × 480 px · 420 × 240 pt</span> — the two numbers you need
+          when checking a build against a Figma frame.
+        </p>
+      </div>
+      <div>
+        <h3>Loupe and eyedropper</h3>
+        <p>
+          An 8× pixel grid follows the cursor with the hex value and coordinate underneath.
+          Press <span class="keys">C</span> to copy the colour.
+        </p>
+      </div>
+      <div>
+        <h3>Eight annotation tools</h3>
+        <p>
+          Freehand, line, arrow, rectangle, ellipse, highlighter, text — and pixelate, for
+          covering a client's data before you paste.
+        </p>
+      </div>
+      <div>
+        <h3>Vietnamese OCR</h3>
+        <p>
+          Lifts text out of a capture on-device, diacritics intact. Nothing is uploaded to
+          read it.
+        </p>
+      </div>
+      <div>
+        <h3>Adjust after the fact</h3>
+        <p>
+          Eight resize handles, drag to move, and arrow keys for single-point nudges when a
+          selection has to land on an exact number.
+        </p>
+      </div>
+      <div>
+        <h3>Nothing leaves the machine</h3>
+        <p>
+          No upload, no account, no analytics. There is no networking code in the app at
+          all — captures go to the clipboard or a folder you chose.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <hr class="rule" />
+      <p class="label">Shortcuts</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Keys</th>
+            <th scope="col">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="keys">⌃G</td><td>Start a capture — rebindable in Settings</td></tr>
+          <tr><td class="keys">drag</td><td>Select a region; drag a handle or the interior to adjust it</td></tr>
+          <tr><td class="keys">← ↑ → ↓</td><td>Nudge by 1 pt · with ⇧ by 10 pt · with ⌥ resize</td></tr>
+          <tr><td class="keys">⌘A</td><td>Select the whole display</td></tr>
+          <tr><td class="keys">C</td><td>Copy the hex colour under the cursor</td></tr>
+          <tr><td class="keys">⌘Z ⌘⇧Z</td><td>Undo, redo an annotation</td></tr>
+          <tr><td class="keys">⌘C ⌘S</td><td>Copy the selection · save it</td></tr>
+          <tr><td class="keys">esc</td><td>Cancel</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <hr class="rule" />
+      <p class="label">Specifications</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <tbody>
+          <tr><td>Requires</td><td class="mono">macOS 14 or later</td></tr>
+          <tr><td>Architecture</td><td class="mono">Apple Silicon · universal build available</td></tr>
+          <tr><td>Download</td><td class="mono">~520 KB</td></tr>
+          <tr><td>Built with</td><td class="mono">Swift 6 · AppKit · ScreenCaptureKit · Vision</td></tr>
+          <tr><td>Dependencies</td><td class="mono">none</td></tr>
+          <tr><td>Permission</td><td class="mono">Screen Recording, granted once per machine</td></tr>
+          <tr><td>Automated checks</td><td class="mono">44</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <hr class="rule" />
+      <p class="label">Identity</p>
+      <h2>Built from the language of measurement</h2>
+    </div>
+    <div class="prose">
+      <p>
+        The mark is the app's own selection UI: four crop brackets around a crosshair,
+        reduced until it still reads at 16 px. The empty middle is the selection — filling
+        it breaks the idea.
+      </p>
+    </div>
+
+    <div class="sizes" style="margin-top: 2.25rem">
+      <figure>
+        <div class="tile" style="width: 96px; height: 96px">
+          <svg viewBox="0 0 100 100" width="96" height="96" aria-hidden="true"><use href="#mark" /></svg>
+        </div>
+        <figcaption>1024 px</figcaption>
+      </figure>
+      <figure>
+        <div class="tile" style="width: 48px; height: 48px; border-radius: 22.5%">
+          <svg viewBox="0 0 100 100" width="48" height="48" aria-hidden="true"><use href="#mark" /></svg>
+        </div>
+        <figcaption>128 px</figcaption>
+      </figure>
+      <figure>
+        <div class="tile" style="width: 28px; height: 28px; border-radius: 22.5%">
+          <svg viewBox="0 0 100 100" width="28" height="28" aria-hidden="true"><use href="#mark" /></svg>
+        </div>
+        <figcaption>32 px</figcaption>
+      </figure>
+    </div>
+
+    <ul class="swatches" style="margin-top: 2.25rem">
+      <li>
+        <div class="chip" style="background: #0e6b78"></div>
+        <div class="meta"><span class="name">Petrol</span><span class="hex">#0E6B78</span></div>
+      </li>
+      <li>
+        <div class="chip" style="background: linear-gradient(#163d45, #07181c)"></div>
+        <div class="meta"><span class="name">Icon ground</span><span class="hex">#163D45 → #07181C</span></div>
+      </li>
+      <li>
+        <div class="chip" style="background: #5fd3de"></div>
+        <div class="meta"><span class="name">Signal</span><span class="hex">#5FD3DE</span></div>
+      </li>
+      <li>
+        <div class="chip" style="background: #10161a"></div>
+        <div class="meta"><span class="name">Ink</span><span class="hex">#10161A</span></div>
+      </li>
+      <li>
+        <div class="chip" style="background: #f6f7f8"></div>
+        <div class="meta"><span class="name">Paper</span><span class="hex">#F6F7F8</span></div>
+      </li>
+      <li>
+        <div class="chip" style="background: #d81b60"></div>
+        <div class="meta"><span class="name">Measure</span><span class="hex">#D81B60</span></div>
+      </li>
+    </ul>
+
+    <div class="prose" style="margin-top: 2rem">
+      <p>
+        Measure magenta has one job — the dimension annotations on this page and nothing
+        else. Design tools colour measurement overlays this way, so it carries meaning
+        rather than decoration; spending it on a button would cost the palette its only
+        signal.
+      </p>
+      <p>
+        Type is the platform's own: SF Pro for reading, SF Mono for anything that is data —
+        dimensions, hex values, shortcuts, sizes. No webfont, so nothing silently falls
+        back. The full guide is in <code>brand/BRAND.md</code>.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <hr class="rule" style="margin-bottom: 1.5rem" />
+    <p class="label">Trimshot</p>
+    <p>
+      A macOS capture tool built for design QA. Distributed as a signed but un-notarised
+      build, so the first launch needs an allow in System&nbsp;Settings&nbsp;›
+      Privacy&nbsp;&amp;&nbsp;Security.
+    </p>
+  </footer>
+</div>

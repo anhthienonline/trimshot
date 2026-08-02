@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trimshot — a measuring instrument for design QA on macOS</title>
+<meta
+  name="description"
+  content="A macOS capture tool that freezes the screen before you select, reports points and pixels together, and matches Apple's own screencapture to 0.01 of one 8-bit level."
+/>
+<meta name="theme-color" content="#0e6b78" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0c1215" media="(prefers-color-scheme: dark)" />
+<meta property="og:title" content="Trimshot — a measuring instrument for design QA" />
+<meta
+  property="og:description"
+  content="Freezes every display before you select, so the pixels you crop are the pixels you saw. Points and pixels, together."
+/>
+<meta property="og:type" content="website" />
+<link
+  rel="icon"
+  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%235fd3de' stroke-width='7'%3E%3Cpath d='M22 40V22h18'/%3E%3Cpath d='M60 22h18v18'/%3E%3Cpath d='M78 60v18H60'/%3E%3Cpath d='M40 78H22V60'/%3E%3C/g%3E%3C/svg%3E"
+/>
+
+<style>
+  /* ---- Brand tokens — see brand/BRAND.md ------------------------------- */
+  :root {
+    --paper: #f6f7f8;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --ink: #10161a;
+    --muted: #56646c;
+    --hairline: #dde3e6;
+    --petrol: #0e6b78;
+    --petrol-ink: #ffffff;
+    --measure: #d81b60;
+    --shadow-sm: 0 1px 2px rgba(16, 22, 26, 0.05);
+    --shadow-lg: 0 2px 4px rgba(16, 22, 26, 0.04), 0 24px 48px -12px rgba(16, 22, 26, 0.18);
+
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      system-ui, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --col: 66ch;
+    --step: clamp(3.5rem, 8vw, 6.5rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0c1215;
+      --surface: #121a1e;
+      --raised: #162026;
+      --ink: #e7eef0;
+      --muted: #8a9aa1;
+      --hairline: #212d33;
+      --petrol: #5fd3de;
+      --petrol-ink: #05171b;
+      --measure: #ff6c99;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.4), 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0c1215;
+    --surface: #121a1e;
+    --raised: #162026;
+    --ink: #e7eef0;
+    --muted: #8a9aa1;
+    --hairline: #212d33;
+    --petrol: #5fd3de;
+    --petrol-ink: #05171b;
+    --measure: #ff6c99;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.4), 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+  }
+  :root[data-theme="light"] {
+    --paper: #f6f7f8;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --ink: #10161a;
+    --muted: #56646c;
+    --hairline: #dde3e6;
+    --petrol: #0e6b78;
+    --petrol-ink: #ffffff;
+    --measure: #d81b60;
+    --shadow-sm: 0 1px 2px rgba(16, 22, 26, 0.05);
+    --shadow-lg: 0 2px 4px rgba(16, 22, 26, 0.04), 0 24px 48px -12px rgba(16, 22, 26, 0.18);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 64rem; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 3rem); }
+
+  a { color: var(--petrol); text-underline-offset: 0.2em; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--petrol); outline-offset: 3px; border-radius: 3px;
+  }
+
+  h1, h2, h3 { margin: 0; letter-spacing: -0.02em; font-weight: 600; text-wrap: balance; }
+  p { margin: 0; }
+
+  code, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .label {
+    font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  /* Ruler-tick rule, the one structural device carried over from the brand. */
+  .rule {
+    height: 9px; margin: 0; border: 0;
+    background:
+      repeating-linear-gradient(to right, var(--hairline) 0 1px, transparent 1px 8px)
+        left bottom / 72px 9px no-repeat,
+      linear-gradient(var(--hairline), var(--hairline)) left bottom / 100% 1px no-repeat;
+  }
+
+  /* ---- Nav ------------------------------------------------------------- */
+  nav {
+    display: flex; align-items: center; gap: 1.5rem;
+    padding: 1.25rem 0; flex-wrap: wrap;
+  }
+  .lockup { display: flex; align-items: center; gap: 0.6rem; color: var(--petrol); margin-right: auto; }
+  .lockup svg { width: 26px; height: 26px; flex: none; }
+  .lockup b { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+  nav a.navlink { color: var(--muted); text-decoration: none; font-size: 0.9375rem; }
+  nav a.navlink:hover { color: var(--ink); }
+
+  /* ---- Buttons --------------------------------------------------------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.7rem 1.1rem; border-radius: 6px; font-size: 0.9375rem; font-weight: 500;
+    text-decoration: none; border: 1px solid transparent; cursor: pointer;
+  }
+  .btn-primary { background: var(--petrol); color: var(--petrol-ink); }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-ghost { border-color: var(--hairline); color: var(--ink); background: var(--surface); }
+  .btn-ghost:hover { border-color: var(--muted); }
+  .btn small { font-family: var(--mono); font-size: 0.6875rem; opacity: 0.75; font-weight: 400; }
+
+  /* ---- Hero ------------------------------------------------------------ */
+  header { padding: clamp(2.5rem, 7vw, 5rem) 0 0; }
+  h1 { font-size: clamp(2.25rem, 6vw, 3.5rem); line-height: 1.05; max-width: 26ch; }
+  .lede { max-width: var(--col); margin-top: 1.5rem; font-size: 1.1875rem; color: var(--muted); }
+  .cta { display: flex; gap: 0.75rem; margin-top: 2rem; flex-wrap: wrap; align-items: center; }
+  .req { margin-top: 1rem; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+
+  /* ---- Product figure ---------------------------------------------------
+     A faithful recreation of the capture overlay in CSS rather than a
+     bitmap: it stays crisp at any density, follows the viewer's theme, and
+     weighs nothing. Every value here matches the real app.                */
+  figure.shot { margin: clamp(2.5rem, 6vw, 4rem) 0 0; }
+  .screen {
+    position: relative; border-radius: 10px; overflow: hidden;
+    box-shadow: var(--shadow-lg); border: 1px solid var(--hairline);
+    aspect-ratio: 16 / 10; background: #eef1f3;
+    /* A stand-in page being inspected — deliberately abstract, not a real app. */
+    background-image:
+      linear-gradient(#dfe5e9 0 2px, transparent 2px),
+      linear-gradient(90deg, #cfd8dd 0 34%, transparent 34%);
+    background-size: 100% 64px, 100% 100%;
+    background-position: 0 40px, 0 0;
+  }
+  .screen-bar {
+    position: absolute; inset: 0 0 auto 0; height: 26px; background: #d7dee2;
+    display: flex; align-items: center; gap: 6px; padding: 0 10px;
+  }
+  .screen-bar i { width: 8px; height: 8px; border-radius: 50%; background: #b3bfc6; }
+
+  /* The selection rect, declared once — the dim bands and the frame both derive from it,
+     so they cannot drift apart. */
+  .screen { --sx: 18%; --sy: 26%; --sw: 46%; --sh: 44%; }
+
+  /* Four bands around the selection rather than one sheet over everything. A full-cover
+     overlay with a re-created background inside the "hole" never lines up: it reads as a
+     mismatched patch instead of the same content left undimmed. */
+  .dim { position: absolute; background: rgba(8, 14, 17, 0.42); }
+  .dim-t { left: 0; right: 0; top: 0; height: var(--sy); }
+  .dim-b { left: 0; right: 0; top: calc(var(--sy) + var(--sh)); bottom: 0; }
+  .dim-l { left: 0; width: var(--sx); top: var(--sy); height: var(--sh); }
+  .dim-r { left: calc(var(--sx) + var(--sw)); right: 0; top: var(--sy); height: var(--sh); }
+
+  .sel {
+    position: absolute; left: var(--sx); top: var(--sy); width: var(--sw); height: var(--sh);
+    outline: 1px solid #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.45);
+  }
+  .handle { position: absolute; }
+  .handle { width: 7px; height: 7px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.5); }
+  .h-tl { left: -3px; top: -3px } .h-tc { left: calc(50% - 3px); top: -3px } .h-tr { right: -3px; top: -3px }
+  .h-ml { left: -3px; top: calc(50% - 3px) } .h-mr { right: -3px; top: calc(50% - 3px) }
+  .h-bl { left: -3px; bottom: -3px } .h-bc { left: calc(50% - 3px); bottom: -3px } .h-br { right: -3px; bottom: -3px }
+
+  .size-pill {
+    position: absolute; left: 18%; top: calc(26% - 30px);
+    background: rgba(8, 14, 17, 0.78); color: #fff; border-radius: 5px;
+    padding: 4px 8px; font-family: var(--mono); font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+
+  /* The loupe: a real pixel grid, nearest-neighbour in spirit. */
+  .loupe {
+    position: absolute; right: 5%; top: 33%; width: 132px;
+    background: rgba(8, 14, 17, 0.9); border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 8px; overflow: hidden;
+  }
+  .loupe .grid {
+    height: 88px;
+    background:
+      repeating-linear-gradient(to right, rgba(255,255,255,0.10) 0 1px, transparent 1px 8.8px),
+      repeating-linear-gradient(to bottom, rgba(255,255,255,0.10) 0 1px, transparent 1px 8.8px),
+      linear-gradient(135deg, #7fd6c4 0 42%, #2f6f8f 42% 58%, #1d3f52 58%);
+  }
+  .loupe .cell {
+    position: absolute; left: calc(50% - 5px); top: calc(44px - 5px);
+    width: 10px; height: 10px; outline: 1px solid #fff; box-shadow: 0 0 0 1px #000;
+  }
+  .loupe .read {
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+    font-family: var(--mono); font-size: 0.625rem; color: #fff;
+  }
+  .loupe .swatch { width: 11px; height: 11px; border-radius: 2px; background: #2f6f8f;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35); }
+
+  /* The annotation toolbar. */
+  .toolbar {
+    /* Parked just under the selection, which is where the real toolbar appears. */
+    position: absolute; left: calc(var(--sx) + var(--sw) / 2); transform: translateX(-50%);
+    top: calc(var(--sy) + var(--sh) + 12px);
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(20, 27, 31, 0.92); border-radius: 9px; padding: 6px 9px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  }
+  .toolbar svg { width: 15px; height: 15px; color: #e7eef0; flex: none; }
+  .toolbar .on { background: rgba(255,255,255,0.2); border-radius: 4px; padding: 2px; margin: -2px; }
+  .toolbar .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.2); }
+  .toolbar .dot { width: 12px; height: 12px; border-radius: 50%; }
+
+  figure.shot figcaption {
+    margin-top: 1.25rem; font-size: 0.875rem; color: var(--muted); max-width: var(--col);
+  }
+
+  /* The dimension device, used only where something really is measured. */
+  .dimline {
+    display: flex; align-items: center; gap: 0.6rem; color: var(--measure);
+    font-family: var(--mono); font-size: 0.6875rem; font-variant-numeric: tabular-nums;
+    margin-top: 0.75rem;
+  }
+  .dimline::before, .dimline::after {
+    content: ""; flex: 1; height: 1px; background: currentColor; opacity: 0.55;
+  }
+
+  /* ---- Sections -------------------------------------------------------- */
+  section { padding-block: var(--step); }
+  .head { display: flex; flex-direction: column; gap: 1.125rem; margin-bottom: 2.25rem; }
+  h2 { font-size: clamp(1.5rem, 3.4vw, 2rem); }
+  .prose { max-width: var(--col); display: flex; flex-direction: column; gap: 1rem; }
+
+  /* ---- Positioning table ---------------------------------------------- */
+  .compare { overflow-x: auto; }
+  .compare table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.9375rem; }
+  .compare th, .compare td {
+    text-align: left; padding: 0.75rem 1rem 0.75rem 0; border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+  .compare th { font: 400 0.6875rem/1.4 var(--mono); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); }
+  .compare td:first-child { font-weight: 500; white-space: nowrap; padding-right: 2rem; }
+  .yes { color: var(--petrol); font-family: var(--mono); }
+  .no { color: var(--muted); font-family: var(--mono); }
+
+  /* ---- Features -------------------------------------------------------- */
+  .features {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1px; background: var(--hairline);
+    border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden;
+  }
+  .features > div { background: var(--surface); padding: 1.5rem; }
+  .features h3 { font-size: 0.9375rem; margin-bottom: 0.5rem; }
+  .features p { font-size: 0.9375rem; color: var(--muted); }
+
+  /* ---- Tables ---------------------------------------------------------- */
+  .data { overflow-x: auto; }
+  .data table { border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
+  .data th, .data td {
+    text-align: left; padding: 0.6875rem 1rem 0.6875rem 0;
+    border-bottom: 1px solid var(--hairline); vertical-align: baseline;
+  }
+  .data th { font: 400 0.6875rem/1.4 var(--mono); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); }
+  .data td:first-child { white-space: nowrap; }
+  .keys { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ---- Install --------------------------------------------------------- */
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 1.25rem; max-width: var(--col); }
+  ol.steps li { counter-increment: s; display: grid; grid-template-columns: 1.75rem 1fr; gap: 0.875rem; }
+  ol.steps li::before {
+    content: counter(s); font: 500 0.75rem/1.75rem var(--mono);
+    text-align: center; background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 50%; height: 1.75rem; color: var(--muted);
+  }
+  .callout {
+    margin-top: 1.75rem; padding: 1.125rem 1.25rem; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 3px solid var(--measure); max-width: var(--col);
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .callout strong { font-size: 0.9375rem; }
+  .callout p { font-size: 0.9375rem; color: var(--muted); }
+  pre {
+    margin: 0; overflow-x: auto; background: var(--surface);
+    border: 1px solid var(--hairline); border-radius: 6px; padding: 0.875rem 1rem;
+    font: 0.8125rem/1.5 var(--mono);
+  }
+
+  footer { padding-block: var(--step) clamp(3rem, 6vw, 5rem); color: var(--muted); font-size: 0.875rem; }
+  footer .links { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-top: 1rem; }
+  footer p { max-width: var(--col); margin-top: 0.75rem; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="mark" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="miter">
+    <path d="M22 40V22h18" /><path d="M60 22h18v18" />
+    <path d="M78 60v18H60" /><path d="M40 78H22V60" />
+    <g stroke-width="1.7" opacity="0.85"><path d="M41.5 50h17" /><path d="M50 41.5v17" /></g>
+  </g>
+</defs></svg>
+
+<div class="wrap">
+
+  <nav>
+    <span class="lockup">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#mark" /></svg>
+      <b>Trimshot</b>
+    </span>
+    <a class="navlink" href="#why">Why</a>
+    <a class="navlink" href="#features">Features</a>
+    <a class="navlink" href="#shortcuts">Shortcuts</a>
+    <a class="navlink" href="#install">Install</a>
+    <a class="navlink" href="https://github.com/hokhacthien91/trimshot">Source</a>
+    <a class="btn btn-primary" href="Trimshot.dmg" download>Download<small>516 KB</small></a>
+  </nav>
+
+  <header>
+    <h1>A measuring instrument that happens to take screenshots.</h1>
+    <p class="lede">
+      Trimshot freezes every display the instant you press the shortcut, then lets you
+      select. The pixels you crop are exactly the pixels you saw — and it reports them in
+      points <em>and</em> pixels, because on a Retina screen neither number is the whole
+      answer.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="Trimshot.dmg" download>Download for macOS<small>516 KB</small></a>
+      <a class="btn btn-ghost" href="#install">Read the install note first</a>
+      <a class="btn btn-ghost" href="https://github.com/hokhacthien91/trimshot">View source</a>
+    </div>
+    <p class="req">macOS 14+ · Apple Silicon · no account, no network, no dependencies</p>
+
+    <figure class="shot">
+      <div class="screen" role="img"
+        aria-label="The Trimshot overlay: the screen dimmed, a selection with eight resize handles, a size readout of 840 by 480 pixels, a magnifier showing a pixel grid and hex value, and the annotation toolbar.">
+        <div class="screen-bar"><i></i><i></i><i></i></div>
+        <div class="dim dim-t"></div>
+        <div class="dim dim-b"></div>
+        <div class="dim dim-l"></div>
+        <div class="dim dim-r"></div>
+        <div class="size-pill">840 × 480 px · 420 × 240 pt</div>
+        <div class="sel">
+          <span class="handle h-tl"></span><span class="handle h-tc"></span><span class="handle h-tr"></span>
+          <span class="handle h-ml"></span><span class="handle h-mr"></span>
+          <span class="handle h-bl"></span><span class="handle h-bc"></span><span class="handle h-br"></span>
+        </div>
+        <div class="loupe">
+          <div class="grid"><span class="cell"></span></div>
+          <div class="read"><span class="swatch"></span>#2F6F8F<span style="opacity:.6">1284, 662</span></div>
+        </div>
+        <div class="toolbar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="on"><path d="M4 20l3-1 11-11-2-2L5 17z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 19L19 5"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 18L18 6M12 6h6v6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="7" width="16" height="10" rx="1"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="7"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14M12 7v11"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 16h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></svg>
+          <span class="sep"></span>
+          <span class="dot" style="background:#ff3b30"></span>
+          <span class="dot" style="background:#ffcc00"></span>
+          <span class="dot" style="background:#0a84ff"></span>
+          <span class="sep"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10H9"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+        </div>
+      </div>
+      <figcaption>
+        The overlay, drawn to scale: the dim, the eight handles, the dual-unit readout,
+        the loupe with its hex value, and the toolbar where it actually appears — just
+        under the selection.
+      </figcaption>
+      <div class="dimline">selection reported in both units</div>
+    </figure>
+  </header>
+
+  <section id="why">
+    <div class="head">
+      <hr class="rule" />
+      <p class="label">Why another one</p>
+      <h2>Most screenshot tools are wide. This one is exact.</h2>
+    </div>
+    <div class="prose">
+      <p>
+        There are excellent broad capture tools for macOS — several are free and open
+        source, and they do scrolling capture, screen recording, cloud upload and OCR in
+        forty languages. Trimshot does none of that, and is not trying to.
+      </p>
+      <p>
+        It exists for one job: checking a build against a design. That job needs a tool
+        whose numbers you can trust, so the accuracy is stated as a measurement rather
+        than an adjective. Every crop is compared against macOS's own
+        <code>screencapture</code> of the identical region; the difference is
+        <strong>0.01 of one 8-bit level</strong>, and there are 44 automated checks over
+        the coordinate maths behind it — negative-origin displays, mixed scale factors,
+        and selections spanning two monitors included.
+      </p>
+    </div>
+
+    <div class="compare" style="margin-top: 2.25rem">
+      <table>
+        <thead>
+          <tr><th scope="col">&nbsp;</th><th scope="col">Trimshot</th><th scope="col">Broad capture tools</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Points and pixels together</td><td class="yes">yes</td><td class="no">pixels only, usually</td></tr>
+          <tr><td>Stated accuracy figure</td><td class="yes">0.01 / 255</td><td class="no">not published</td></tr>
+          <tr><td>Screen frozen before selecting</td><td class="yes">yes</td><td class="no">varies</td></tr>
+          <tr><td>Hex picked from the frozen frame</td><td class="yes">yes</td><td class="no">samples the live screen</td></tr>
+          <tr><td>Scrolling capture</td><td class="no">no</td><td class="yes">yes</td></tr>
+          <tr><td>Screen recording, GIF</td><td class="no">no</td><td class="yes">yes</td></tr>
+          <tr><td>Cloud upload</td><td class="no">no — and no network code at all</td><td class="yes">yes</td></tr>
+          <tr><td>OCR languages</td><td class="no">2 — Vietnamese, English</td><td class="yes">up to 40</td></tr>
+          <tr><td>Download size</td><td class="yes">516 KB</td><td class="no">tens of MB</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="dimline">an honest comparison, including where it loses</div>
+  </section>
+
+  <section id="features">
+    <div class="head">
+      <hr class="rule" />
+      <p class="label">Features</p>
+    </div>
+    <div class="features">
+      <div>
+        <h3>Both units, always</h3>
+        <p><span class="mono">840 × 480 px · 420 × 240 pt</span> — the pair you need when a
+          Figma frame says one thing and the build reports another.</p>
+      </div>
+      <div>
+        <h3>Loupe and eyedropper</h3>
+        <p>An 8× pixel grid follows the cursor with the hex value underneath. Press
+          <span class="keys">C</span> to copy it. It reads the frozen bitmap, so the value
+          is the value.</p>
+      </div>
+      <div>
+        <h3>Eight annotation tools</h3>
+        <p>Freehand, line, arrow, rectangle, ellipse, highlighter, text — and pixelate,
+          for covering a client's data before you paste.</p>
+      </div>
+      <div>
+        <h3>Vietnamese OCR</h3>
+        <p>Lifts text out of a capture on-device, diacritics intact. Nothing is uploaded to
+          read it.</p>
+      </div>
+      <div>
+        <h3>Adjust to the pixel</h3>
+        <p>Eight resize handles, drag to move, and arrow keys for one-point nudges when the
+          selection has to land on an exact number.</p>
+      </div>
+      <div>
+        <h3>Nothing leaves the machine</h3>
+        <p>No upload, no account, no analytics. There is no networking code in the app —
+          captures go to the clipboard or a folder you chose.</p>
+      </div>
+      <div>
+        <h3>Every display, frozen</h3>
+        <p>A full-resolution still of each monitor is grabbed before the overlay appears, so
+          video, menus and the cursor cannot drift underneath your selection.</p>
+      </div>
+      <div>
+        <h3>Stays out of the way</h3>
+        <p>A menu bar icon and one shortcut. No Dock icon, no window, no launch screen.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="shortcuts">
+    <div class="head">
+      <hr class="rule" />
+      <p class="label">Shortcuts</p>
+    </div>
+    <div class="data">
+      <table>
+        <thead><tr><th scope="col">Keys</th><th scope="col">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="keys">⌃G</td><td>Start a capture — rebindable in Settings</td></tr>
+          <tr><td class="keys">drag</td><td>Select; drag a handle or the interior to adjust</td></tr>
+          <tr><td class="keys">← ↑ → ↓</td><td>Nudge 1 pt · with ⇧ 10 pt · with ⌥ resize</td></tr>
+          <tr><td class="keys">⌘A</td><td>Select the whole display</td></tr>
+          <tr><td class="keys">C</td><td>Copy the hex colour under the cursor</td></tr>
+          <tr><td class="keys">⌘Z ⌘⇧Z</td><td>Undo, redo an annotation</td></tr>
+          <tr><td class="keys">⌘C ⌘S</td><td>Copy the selection · save it</td></tr>
+          <tr><td class="keys">esc</td><td>Cancel</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="head">
+      <hr class="rule" />
+      <p class="label">Install</p>
+      <h2>Four steps, one of them annoying</h2>
+    </div>
+    <ol class="steps">
+      <li><span>Download the disk image and drag <strong>Trimshot</strong> into your
+        Applications folder.</span></li>
+      <li><span>Open it. macOS will refuse the first time — see the note below.</span></li>
+      <li><span>Press <span class="keys">⌃G</span>. macOS asks for Screen Recording
+        access; grant it under Privacy &amp; Security › Screen &amp; System Audio
+        Recording.</span></li>
+      <li><span>Press <span class="keys">⌃G</span> again and drag a selection.</span></li>
+    </ol>
+
+    <h3 style="font-size:0.9375rem;margin:2.5rem 0 0.75rem">Or with Homebrew</h3>
+    <pre>brew tap hokhacthien91/trimshot
+brew install --cask trimshot</pre>
+    <p style="max-width:var(--col);font-size:0.9375rem;color:var(--muted)">
+      Convenient for installing and updating, but it does <em>not</em> skip the step below:
+      Homebrew quarantines its downloads by default, so an un-notarised build still needs the
+      one-time approval.
+    </p>
+
+    <div class="callout">
+      <strong>The first launch is blocked, and that is expected</strong>
+      <p>
+        Trimshot is signed, but not notarised by Apple — notarisation requires a paid
+        developer account, and this is a small tool given away. So Gatekeeper stops the
+        first launch and says it cannot verify the app is free of malware.
+      </p>
+      <p>
+        To allow it: open <strong>System Settings › Privacy &amp; Security</strong>, scroll
+        to the blocked-app notice, and click <strong>Open Anyway</strong>. macOS 15 removed
+        the older Control-click → Open shortcut, so that panel is the only route. Once per
+        machine.
+      </p>
+      <p>
+        If you would rather not take that on trust, build it from source instead — it is a
+        few hundred kilobytes of Swift with no dependencies.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <hr class="rule" />
+      <p class="label">Specifications</p>
+    </div>
+    <div class="data">
+      <table>
+        <tbody>
+          <tr><td>Requires</td><td class="mono">macOS 14 or later</td></tr>
+          <tr><td>Architecture</td><td class="mono">Apple Silicon · universal build on request</td></tr>
+          <tr><td>Download</td><td class="mono">516 KB</td></tr>
+          <tr><td>Built with</td><td class="mono">Swift 6 · AppKit · ScreenCaptureKit · Vision</td></tr>
+          <tr><td>Dependencies</td><td class="mono">none</td></tr>
+          <tr><td>Network access</td><td class="mono">none — no networking code in the binary</td></tr>
+          <tr><td>Permission</td><td class="mono">Screen Recording, once per machine</td></tr>
+          <tr><td>Automated checks</td><td class="mono">44</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <hr class="rule" />
+    <span class="lockup" style="margin-top:1.5rem">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#mark" /></svg>
+      <b>Trimshot</b>
+    </span>
+    <p>
+      A macOS capture tool for design QA. <em>Trim</em> is the prepress term for cutting a
+      sheet to its exact finished size — which is what a crop is.
+    </p>
+    <div class="links">
+      <a href="Trimshot.dmg" download>Download</a>
+      <a href="https://github.com/hokhacthien91/trimshot">Source</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://github.com/hokhacthien91/trimshot/blob/main/LICENSE">MIT licence</a>
+      <a href="https://github.com/hokhacthien91/trimshot/blob/main/CHANGELOG.md">Changelog</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

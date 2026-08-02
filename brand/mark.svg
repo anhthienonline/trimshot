@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Trimshot mark">
+  <title>Trimshot mark</title>
+  <!--
+    Four crop brackets around a crosshair. Uses currentColor so it inherits the surrounding
+    text colour — set `color` on the parent to recolour it.
+
+    Geometry is proportional to the 100-unit box: brackets sit at 22/78, arms are 18 long,
+    stroke is 4. Keep those ratios if you rescale; the gaps between brackets are what make
+    it read as a crop frame rather than a solid ring.
+  -->
+  <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter">
+    <path d="M22 40 V22 H40" />
+    <path d="M60 22 H78 V40" />
+    <path d="M78 60 V78 H60" />
+    <path d="M40 78 H22 V60" />
+    <g stroke-width="1.7" opacity="0.85">
+      <path d="M41.5 50 H58.5" />
+      <path d="M50 41.5 V58.5" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,365 @@
+import AppKit
+import TrimshotCore
+
+enum OverlayAction {
+    case copy
+    case save
+    case saveAs
+}
+
+/// Owns a capture session: the frozen bitmaps, one overlay window per display, the
+/// single selection rect shared between them, and the annotations drawn on top.
+///
+/// The selection lives here rather than in any one view because a drag can start on one
+/// display and end on another — every view renders the same global rect in its own
+/// coordinates.
+@MainActor
+final class OverlayCoordinator {
+    static let shared = OverlayCoordinator()
+
+    private(set) var isActive = false
+
+    private var windows: [OverlayWindow] = []
+    private var shots: [DisplayShot] = []
+    /// AppKit global points.
+    private(set) var selection: CGRect?
+    /// True once a drag has finished, so handles and the toolbar show.
+    private(set) var isSettled = false
+    private var previousApp: NSRunningApplication?
+
+    // MARK: Annotation state
+
+    private(set) var annotations = AnnotationStore()
+    /// The mark currently being dragged out, not yet committed.
+    private(set) var draft: Annotation?
+    private(set) var activeTool: AnnotationTool?
+    private(set) var strokeColor = PixelColor(red: 255, green: 59, blue: 48)
+    private(set) var strokeWidth: CGFloat = 4
+
+    private var toolbar: ToolbarWindow?
+
+    private init() {}
+
+    // MARK: - Session lifecycle
+
+    func begin(with shots: [DisplayShot]) {
+        guard !isActive else { return }
+        isActive = true
+        self.shots = shots
+        self.selection = nil
+        self.isSettled = false
+        self.annotations.removeAll()
+        self.draft = nil
+        self.activeTool = nil
+        previousApp = NSWorkspace.shared.frontmostApplication
+
+        windows = shots.map { OverlayWindow(shot: $0, coordinator: self) }
+        for window in windows {
+            window.orderFrontRegardless()
+        }
+
+        // A .accessory app is not frontmost, so it has to claim focus explicitly or the
+        // overlay never receives key events.
+        NSApp.activate(ignoringOtherApps: true)
+
+        let mouse = NSEvent.mouseLocation
+        if let focus = windows.first(where: { $0.frame.contains(mouse) }) ?? windows.first {
+            focus.makeKeyAndOrderFront(nil)
+            focus.makeFirstResponder(focus.rootView)
+        }
+
+        updatePointer(mouse)
+    }
+
+    func cancel() {
+        guard isActive else { return }
+        teardown()
+    }
+
+    func finish(with action: OverlayAction) {
+        guard isActive, let image = composeImage() else {
+            NSSound.beep()
+            return
+        }
+
+        teardown()
+        perform(action, on: image)
+    }
+
+    /// The selection with its annotations baked in, at full capture resolution.
+    private func composeImage() -> CGImage? {
+        guard
+            let selection,
+            let cropped = ImageCompositor.crop(globalRect: selection, from: shots)
+        else { return nil }
+
+        guard !annotations.isEmpty else { return cropped }
+
+        let scale = ScreenGeometry.renderScale(
+            forGlobalRect: selection,
+            among: shots.map(\.geometry)
+        )
+        return AnnotationRenderer.flatten(
+            annotations.annotations,
+            onto: cropped,
+            cropRect: selection,
+            scale: scale
+        ) ?? cropped
+    }
+
+    private func teardown() {
+        toolbar?.orderOut(nil)
+        toolbar = nil
+        for window in windows {
+            window.orderOut(nil)
+        }
+        windows = []
+        shots = []
+        selection = nil
+        isSettled = false
+        isActive = false
+        annotations.removeAll()
+        draft = nil
+        activeTool = nil
+
+        // Hand focus back to whatever the user was actually working in.
+        previousApp?.activate()
+        previousApp = nil
+    }
+
+    // MARK: - Selection state
+
+    func updateSelection(_ rect: CGRect?) {
+        selection = rect
+        if rect == nil { isSettled = false }
+        for window in windows {
+            window.rootView?.apply(selection: rect)
+        }
+        repositionToolbar()
+    }
+
+    func setSettled(_ settled: Bool) {
+        guard settled != isSettled else { return }
+        isSettled = settled
+        for window in windows {
+            window.rootView?.apply(isSettled: settled)
+        }
+        settled ? showToolbar() : hideToolbar()
+    }
+
+    func updatePointer(_ point: CGPoint?) {
+        for window in windows {
+            window.rootView?.apply(pointer: point)
+        }
+    }
+
+    /// The union of every captured display, in AppKit global points — the area a selection
+    /// is allowed to occupy.
+    var displayBounds: CGRect? {
+        shots.map(\.geometry.frame).reduce(nil) { union, frame in
+            union.map { $0.union(frame) } ?? frame
+        }
+    }
+
+    func selectWholeDisplay(_ geometry: DisplayGeometry) {
+        updateSelection(geometry.frame)
+        setSettled(true)
+    }
+
+    /// Feedback for the copy-colour shortcut, which does not end the session.
+    func flashColorCopied(_ hex: String) {
+        HUD.show("Copied  \(hex)", duration: .milliseconds(900))
+    }
+
+    // MARK: - Annotations
+
+    func setDraft(_ annotation: Annotation?) {
+        draft = annotation
+        broadcastAnnotations()
+    }
+
+    func commitDraft() {
+        if let draft, draft.isMeaningful {
+            annotations.add(draft)
+        }
+        draft = nil
+        broadcastAnnotations()
+        refreshToolbar()
+    }
+
+    func undoAnnotation() {
+        guard annotations.undo() else { return }
+        broadcastAnnotations()
+        refreshToolbar()
+    }
+
+    func redoAnnotation() {
+        guard annotations.redo() else { return }
+        broadcastAnnotations()
+        refreshToolbar()
+    }
+
+    private func broadcastAnnotations() {
+        let all = annotations.annotations
+        for window in windows {
+            window.rootView?.apply(annotations: all, draft: draft)
+        }
+    }
+
+    // MARK: - Toolbar
+
+    private func showToolbar() {
+        guard let selection else { return }
+
+        let panel = toolbar ?? ToolbarWindow(delegate: self)
+        toolbar = panel
+        panel.update(
+            tool: activeTool,
+            color: strokeColor,
+            width: strokeWidth,
+            canUndo: annotations.canUndo
+        )
+        position(panel, for: selection)
+        panel.orderFrontRegardless()
+    }
+
+    private func hideToolbar() {
+        toolbar?.orderOut(nil)
+    }
+
+    private func repositionToolbar() {
+        guard let toolbar, let selection, isSettled else { return }
+        position(toolbar, for: selection)
+    }
+
+    private func position(_ panel: ToolbarWindow, for selection: CGRect) {
+        // Anchor to the display holding the selection's bottom edge, which is where the
+        // bar wants to sit.
+        let anchor = CGPoint(x: selection.midX, y: selection.minY)
+        let screen = NSScreen.screens.first { $0.frame.contains(anchor) }
+            ?? NSScreen.screens.first { !$0.frame.intersection(selection).isEmpty }
+            ?? NSScreen.main
+        guard let screen else { return }
+        panel.position(below: selection, on: screen)
+    }
+
+    private func refreshToolbar() {
+        toolbar?.update(
+            tool: activeTool,
+            color: strokeColor,
+            width: strokeWidth,
+            canUndo: annotations.canUndo
+        )
+    }
+
+    // MARK: - Output
+
+    private func perform(_ action: OverlayAction, on image: CGImage) {
+        let settings = Settings.shared
+
+        switch action {
+        case .copy:
+            ClipboardService.copy(image)
+            HUD.show("Copied  \(image.width) × \(image.height) px")
+
+        case .save:
+            do {
+                let url = try FileSaver.save(
+                    image,
+                    to: settings.saveDirectory,
+                    format: settings.imageFormat
+                )
+                if settings.copyAfterCapture {
+                    ClipboardService.copy(image)
+                }
+                HUD.show("Saved  \(url.lastPathComponent)")
+            } catch {
+                present(error)
+            }
+
+        case .saveAs:
+            do {
+                if let url = try FileSaver.saveWithPanel(image, format: settings.imageFormat) {
+                    HUD.show("Saved  \(url.lastPathComponent)")
+                }
+            } catch {
+                present(error)
+            }
+        }
+    }
+
+    /// OCR reads the selection *without* annotations — marks drawn on top would only
+    /// confuse the recogniser — and leaves the session open so you can still copy the
+    /// image afterwards.
+    func recognizeText() {
+        guard
+            let selection,
+            let cropped = ImageCompositor.crop(globalRect: selection, from: shots)
+        else {
+            NSSound.beep()
+            return
+        }
+
+        HUD.show("Reading text…", duration: .seconds(20))
+
+        Task { @MainActor in
+            do {
+                let text = try await OCRService.recognizeText(in: cropped)
+                ClipboardService.copy(text: text)
+                let lines = text.split(separator: "\n").count
+                HUD.show("Copied text  \(lines) line\(lines == 1 ? "" : "s")")
+            } catch {
+                HUD.show(error.localizedDescription)
+            }
+        }
+    }
+
+    private func present(_ error: Error) {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert(error: error)
+        alert.runModal()
+    }
+}
+
+// MARK: - ToolbarDelegate
+
+extension OverlayCoordinator: ToolbarDelegate {
+
+    func toolbarDidSelect(tool: AnnotationTool?) {
+        activeTool = tool
+        refreshToolbar()
+        for window in windows {
+            window.rootView?.apply(activeTool: tool)
+        }
+    }
+
+    func toolbarDidSelect(color: PixelColor) {
+        strokeColor = color
+        refreshToolbar()
+    }
+
+    func toolbarDidSelect(width: CGFloat) {
+        strokeWidth = width
+        refreshToolbar()
+    }
+
+    func toolbarDidTapUndo() {
+        undoAnnotation()
+    }
+
+    func toolbarDidTapRecognizeText() {
+        recognizeText()
+    }
+
+    func toolbarDidTapCopy() {
+        finish(with: .copy)
+    }
+
+    func toolbarDidTapSave() {
+        finish(with: .save)
+    }
+
+    func toolbarDidTapClose() {
+        cancel()
+    }
+}

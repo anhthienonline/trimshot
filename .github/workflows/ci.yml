@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          sw_vers
+
+      - name: Build
+        run: swift build -c release
+
+      # Stands in for `swift test`: Command Line Tools ships neither XCTest nor the
+      # swift-testing runtime, so the pure logic in TrimshotCore is exercised by a plain
+      # executable that exits non-zero on failure.
+      - name: Checks
+        run: swift run TrimshotChecks
+
+      # The runner has full Xcode, so unlike a Command Line Tools machine it can build both
+      # slices in one pass. Proves the universal path stays healthy.
+      - name: Universal build
+        run: |
+          swift build -c release --arch arm64
+          swift build -c release --arch x86_64
+          lipo -create -output /tmp/Trimshot \
+            "$(swift build -c release --arch arm64 --show-bin-path)/Trimshot" \
+            "$(swift build -c release --arch x86_64 --show-bin-path)/Trimshot"
+          lipo -archs /tmp/Trimshot
+
+      - name: Bundle
+        run: ./scripts/bundle.sh
+
+      # The capture path itself cannot run here: `--self-check` needs a Screen Recording
+      # grant, and a CI runner has no way to approve one. That verification is manual —
+      # ./scripts/self-check.sh on a real machine.
+      - name: Verify the bundle is well formed
+        run: |
+          codesign --verify --deep --strict --verbose=1 "build/Trimshot.app"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "build/Trimshot.app/Contents/Info.plist"
+          test -f "build/Trimshot.app/Contents/Resources/AppIcon.icns"
+
+      - name: Release builds must not expose the diagnostic entry points
+        run: |
+          # These capture every display and write to a path from argv with no interaction.
+          # In a release build they would let any local process borrow this app's Screen
+          # Recording grant, so their absence is a security property worth asserting.
+          for flag in --self-check --render-chrome --dump-status; do
+            if strings "build/Trimshot.app/Contents/MacOS/Trimshot" | grep -q -- "$flag"; then
+              echo "::error::$flag is present in a release build"
+              exit 1
+            fi
+          done
+          echo "all three diagnostic flags absent"
+
+      - name: No networking code
+        run: |
+          # Trimshot claims to have no network access at all. Assert it rather than trusting
+          # the claim to survive future edits.
+          if grep -rnE "URLSession|URLRequest|NWConnection|CFStream|Network\.framework|socket\(" Sources/; then
+            echo "::error::networking API found — PRIVACY.md says there is none"
+            exit 1
+          fi
+          echo "no networking APIs in Sources/"
