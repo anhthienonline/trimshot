@@ -151,8 +151,8 @@ screenshot is not reliable, the ratio should be ~0.58.
 swift scripts/make-icon.swift --preview
 ```
 
-Draws `Resources/AppIcon.icns` in code — four Gravity-green crop brackets around a
-crosshair on a near-black surface — and writes `build/preview/icon-*.png` to check it at 16,
+Draws `Resources/AppIcon.icns` in code — four crop brackets in the brand teal around a
+crosshair on a petrol tile — and writes `build/preview/icon-*.png` to check it at 16,
 32, 128 and 1024 px. The 16 px and 32 px sizes use a chunkier variant with shorter bracket
 arms; at the full weight the gaps close up and the mark turns into a solid ring.
 
