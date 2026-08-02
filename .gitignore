@@ -4,3 +4,7 @@ build/
 .DS_Store
 *.xcuserstate
 Package.resolved
+
+# Editor-local settings — nothing here is needed to build.
+.vscode/
+.idea/
