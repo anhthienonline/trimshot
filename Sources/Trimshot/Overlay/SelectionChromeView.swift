@@ -335,9 +335,12 @@ final class SelectionChromeView: NSView {
             width: size.width + padding.width * 2,
             height: size.height + padding.height * 2
         )
+        // While measuring, the dimension lines run through the cursor and their labels sit
+        // at the midpoint of each span — anywhere near the middle of the screen collides with
+        // them. Park the hint at the bottom instead.
         let origin = CGPoint(
             x: (bounds.width - boxSize.width) / 2,
-            y: bounds.height * 0.62
+            y: isMeasuring ? bounds.height * 0.06 : bounds.height * 0.62
         )
 
         drawLabel(text, at: origin, boxSize: boxSize, padding: padding, font: Style.hintFont)
