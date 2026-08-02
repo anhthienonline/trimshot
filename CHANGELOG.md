@@ -28,6 +28,14 @@ First public build.
 - Magnifier with an 8× pixel grid, following the cursor, reading the frozen bitmap.
 - Eyedropper with hex readout; `C` copies it.
 
+### Measuring gaps
+
+- `M` enters measure mode: the overlay detects the near-uniform run the cursor sits inside,
+  horizontally and vertically, and dimensions it in both units. Pointing at the space between
+  a button and its label gives you the spacing without dragging anything by eye.
+- Edge detection walks a single extracted luminance line rather than sampling pixel by pixel,
+  and ignores gradients and anti-aliasing below a 0.10 luminance threshold.
+
 ### Annotation
 
 - Freehand, line, arrow, rectangle, ellipse, highlighter, text, pixelate.

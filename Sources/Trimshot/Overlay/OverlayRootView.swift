@@ -79,6 +79,10 @@ final class OverlayRootView: NSView {
         chrome.draft = draft
     }
 
+    func apply(isMeasuring: Bool) {
+        chrome.isMeasuring = isMeasuring
+    }
+
     func apply(activeTool: AnnotationTool?) {
         chrome.activeTool = activeTool
         commitPendingText()
@@ -252,6 +256,8 @@ final class OverlayRootView: NSView {
             coordinator?.finish(with: .copy)
         case kVK_ANSI_C where event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty:
             copyColorUnderCursor()
+        case kVK_ANSI_M where event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty:
+            coordinator?.toggleMeasuring()
         case kVK_LeftArrow:
             nudge(dx: -step(for: event), dy: 0, event: event)
         case kVK_RightArrow:

@@ -54,6 +54,11 @@ final class SelectionChromeView: NSView {
         didSet { if activeTool != oldValue { needsDisplay = true } }
     }
 
+    /// Measure mode: report the gap the cursor sits in instead of showing the loupe.
+    var isMeasuring = false {
+        didSet { if isMeasuring != oldValue { needsDisplay = true } }
+    }
+
     init(shot: DisplayShot) {
         self.shot = shot
         self.magnifier = Magnifier(shot: shot)
@@ -97,6 +102,8 @@ final class SelectionChromeView: NSView {
         static let handleFill = NSColor.white
         static let handleStroke = NSColor.black.withAlphaComponent(0.55)
         static let handleSize: CGFloat = 7
+        /// Reserved for dimension annotations — see brand/BRAND.md.
+        static let measure = NSColor(srgbRed: 0xD8 / 255, green: 0x1B / 255, blue: 0x60 / 255, alpha: 1)
 
         // Computed rather than stored: NSFont is not Sendable, so a `static let` would
         // be a concurrency error under Swift 6.
@@ -120,9 +127,89 @@ final class SelectionChromeView: NSView {
             drawHint()
         }
 
-        if !isSettled, pointerIsOnThisDisplay, let pointer {
+        if isMeasuring {
+            drawMeasurement()
+        } else if !isSettled, pointerIsOnThisDisplay, let pointer {
+            // One or the other: the loupe and the dimension lines both want the area around
+            // the cursor, and together they are unreadable.
             magnifier.draw(globalPoint: pointer, viewPoint: toLocal(pointer), in: bounds)
         }
+    }
+
+    /// Draws the horizontal and vertical runs the cursor sits inside, with their sizes.
+    ///
+    /// Magenta because that is what this palette reserves it for — a real dimension
+    /// annotation, and nothing else in the app uses the colour.
+    private func drawMeasurement() {
+        guard pointerIsOnThisDisplay, let pointer else { return }
+
+        let scale = shot.geometry.scale
+        let pixel = ScreenGeometry.pixelPoint(forGlobalPoint: pointer, in: shot.geometry)
+        let spans = EdgeDetector.spans(in: shot.image, atX: pixel.x, y: pixel.y)
+        let local = toLocal(pointer)
+
+        Style.measure.setStroke()
+        Style.measure.setFill()
+
+        if let h = spans.horizontal {
+            let x = EdgeDetector.viewSpan(for: h, axis: .horizontal, in: shot.geometry)
+            drawDimension(
+                from: CGPoint(x: x.from, y: local.y.rounded() + 0.5),
+                to: CGPoint(x: x.to, y: local.y.rounded() + 0.5),
+                text: sizeText(pixels: h.length, scale: scale),
+                vertical: false
+            )
+        }
+
+        if let v = spans.vertical {
+            let y = EdgeDetector.viewSpan(for: v, axis: .vertical, in: shot.geometry)
+            drawDimension(
+                from: CGPoint(x: local.x.rounded() + 0.5, y: y.from),
+                to: CGPoint(x: local.x.rounded() + 0.5, y: y.to),
+                text: sizeText(pixels: v.length, scale: scale),
+                vertical: true
+            )
+        }
+    }
+
+    private func sizeText(pixels: Int, scale: CGFloat) -> String {
+        scale == 1
+            ? "\(pixels) px"
+            : "\(pixels) px · \(Int((CGFloat(pixels) / scale).rounded())) pt"
+    }
+
+    /// A line with end ticks and a label in the middle — the same annotation the brand uses.
+    private func drawDimension(from a: CGPoint, to b: CGPoint, text: String, vertical: Bool) {
+        let path = NSBezierPath()
+        path.lineWidth = 1
+        path.move(to: a)
+        path.line(to: b)
+        // End ticks, perpendicular to the run.
+        let tick: CGFloat = 5
+        if vertical {
+            path.move(to: CGPoint(x: a.x - tick, y: a.y)); path.line(to: CGPoint(x: a.x + tick, y: a.y))
+            path.move(to: CGPoint(x: b.x - tick, y: b.y)); path.line(to: CGPoint(x: b.x + tick, y: b.y))
+        } else {
+            path.move(to: CGPoint(x: a.x, y: a.y - tick)); path.line(to: CGPoint(x: a.x, y: a.y + tick))
+            path.move(to: CGPoint(x: b.x, y: b.y - tick)); path.line(to: CGPoint(x: b.x, y: b.y + tick))
+        }
+        path.stroke()
+
+        let font = Style.labelFont
+        let size = measure(text, font: font)
+        let padding = CGSize(width: 6, height: 3)
+        let box = CGRect(
+            x: (a.x + b.x) / 2 - size.width / 2 - padding.width,
+            y: (a.y + b.y) / 2 - size.height / 2 - padding.height,
+            width: size.width + padding.width * 2,
+            height: size.height + padding.height * 2
+        )
+        Style.measure.setFill()
+        NSBezierPath(roundedRect: box, xRadius: 4, yRadius: 4).fill()
+        (text as NSString).draw(
+            at: CGPoint(x: box.minX + padding.width, y: box.minY + padding.height),
+            withAttributes: [.font: font, .foregroundColor: NSColor.white]
+        )
     }
 
     /// Previews the marks using the very same renderer that bakes them into the exported
@@ -239,7 +326,9 @@ final class SelectionChromeView: NSView {
     private func drawHint() {
         guard pointerIsOnThisDisplay else { return }
 
-        let text = "Drag to select  ·  ⌘A whole screen  ·  C copies the colour  ·  esc cancels"
+        let text = isMeasuring
+            ? "Measuring — point at a gap  ·  M returns to selecting  ·  esc cancels"
+            : "Drag to select  ·  ⌘A whole screen  ·  C copies the colour  ·  M measures  ·  esc cancels"
         let size = measure(text, font: Style.hintFont)
         let padding = CGSize(width: 14, height: 9)
         let boxSize = CGSize(

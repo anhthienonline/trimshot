@@ -66,6 +66,7 @@ launch.
 | arrows, `⇧`+arrows, `⌥`+arrows | nudge by 1 pt, 10 pt, resize by 1 pt |
 | `⌘A` | select the whole display |
 | `C` | copy the HEX colour under the cursor |
+| `M` | measure mode — reports the gap the cursor sits in |
 | `⌘Z` / `⌘⇧Z` | undo / redo an annotation |
 | `⌘C` / `return` | copy the selection |
 | `⌘S` / `⌘⇧S` | save to the configured folder / via a panel |

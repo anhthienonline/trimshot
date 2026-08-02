@@ -288,4 +288,117 @@ Check.suite("AnnotationRenderer.transform") {
     )
 }
 
+Check.suite("EdgeDetector.span") {
+    // A white field with a dark bar from 30 to 39 inclusive.
+    var line = [Double](repeating: 1.0, count: 100)
+    for i in 30...39 { line[i] = 0.05 }
+
+    Check.expectEqual(
+        EdgeDetector.span(in: line, from: 10),
+        EdgeSpan(start: 0, end: 29),
+        "a point left of the bar spans up to the bar's edge"
+    )
+    Check.expectEqual(
+        EdgeDetector.span(in: line, from: 60),
+        EdgeSpan(start: 40, end: 99),
+        "a point right of the bar spans from the bar to the end"
+    )
+    Check.expectEqual(
+        EdgeDetector.span(in: line, from: 34),
+        EdgeSpan(start: 30, end: 39),
+        "a point on the bar measures the bar itself"
+    )
+    Check.expectEqual(
+        EdgeDetector.span(in: line, from: 10)?.length,
+        30,
+        "length is inclusive of both ends"
+    )
+
+    // The gap between two bars — the spacing case this exists for.
+    var gap = [Double](repeating: 1.0, count: 60)
+    for i in 0...9 { gap[i] = 0.0 }
+    for i in 34...59 { gap[i] = 0.0 }
+    Check.expectEqual(
+        EdgeDetector.span(in: gap, from: 20),
+        EdgeSpan(start: 10, end: 33),
+        "the run between two dark bars is measured, not the bars"
+    )
+    Check.expectEqual(
+        EdgeDetector.span(in: gap, from: 20)?.length,
+        24,
+        "a 24 px gap reports 24"
+    )
+
+    // Anti-aliasing and gradients must not be mistaken for edges.
+    var soft = [Double](repeating: 0.5, count: 40)
+    for i in 0..<40 { soft[i] = 0.5 + Double(i) * 0.002 }  // 0.078 total drift
+    Check.expectEqual(
+        EdgeDetector.span(in: soft, from: 20),
+        EdgeSpan(start: 0, end: 39),
+        "a gentle gradient inside the threshold is one span"
+    )
+
+    Check.expect(
+        EdgeDetector.span(in: line, from: -1) == nil
+            && EdgeDetector.span(in: line, from: 100) == nil
+            && EdgeDetector.span(in: [], from: 0) == nil,
+        "out-of-range origins and empty lines return nil"
+    )
+}
+
+Check.suite("EdgeDetector on a real bitmap") {
+    // Two black bars on white, 40 px apart, drawn rather than described — this exercises the
+    // row/column extraction and its Y-flip, which the array-level checks cannot.
+    let width = 200, height = 120
+    let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+    let context = CGContext(
+        data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+        space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    )!
+    context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+    context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    context.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+    // In image coordinates (Y down) these sit at y = 0..<20 and y = 100..<120.
+    context.fill(CGRect(x: 20, y: 0, width: 10, height: height))    // vertical bar
+    context.fill(CGRect(x: 70, y: 0, width: 10, height: height))    // vertical bar
+    context.fill(CGRect(x: 0, y: height - 20, width: width, height: 20))  // top band, Y-down
+    let image = context.makeImage()!
+
+    let result = EdgeDetector.spans(in: image, atX: 45, y: 60)
+    Check.expectEqual(
+        result.horizontal,
+        EdgeSpan(start: 30, end: 69),
+        "the horizontal gap between the two bars measures 30…69"
+    )
+    Check.expectEqual(result.horizontal?.length, 40, "which is 40 px")
+
+    // Vertically at x = 45 the only feature is the band occupying image rows 0…19, so a
+    // point at y = 60 spans from row 20 to the bottom. Getting the flip wrong inverts this.
+    Check.expectEqual(
+        result.vertical,
+        EdgeSpan(start: 20, end: 119),
+        "the vertical span starts below the band, proving the Y flip"
+    )
+}
+
+Check.suite("EdgeDetector.viewSpan") {
+    // A 2x display 900 pt tall: 1800 image rows.
+    let span = EdgeSpan(start: 100, end: 179)   // 80 px inclusive
+    Check.expectEqual(span.length, 80, "the span is 80 px")
+
+    let h = EdgeDetector.viewSpan(for: span, axis: .horizontal, in: retina)
+    Check.expectEqual(h.from, 50, "horizontal start converts to points")
+    Check.expectEqual(h.to, 90, "and the end is exclusive, so the run draws its full width")
+    Check.expectEqual(h.to - h.from, 40, "80 px at 2x is 40 pt wide on screen")
+
+    let v = EdgeDetector.viewSpan(for: span, axis: .vertical, in: retina)
+    Check.expectEqual(v.from, 850, "vertical start is measured down from the top")
+    Check.expectEqual(v.to, 810, "and runs downward, so `to` is the lower number")
+    Check.expectEqual(v.from - v.to, 40, "same 40 pt, flipped")
+
+    // A 1x display: points and pixels coincide, so nothing should be scaled.
+    let flat = EdgeDetector.viewSpan(for: span, axis: .horizontal, in: leftMonitor)
+    Check.expectEqual(flat.to - flat.from, 80, "at 1x the run is 80 pt wide")
+}
+
 Check.finish()

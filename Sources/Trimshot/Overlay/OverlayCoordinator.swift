@@ -33,6 +33,9 @@ final class OverlayCoordinator {
     /// The mark currently being dragged out, not yet committed.
     private(set) var draft: Annotation?
     private(set) var activeTool: AnnotationTool?
+    /// Measure mode: the overlay reports the gap the cursor sits in instead of waiting for a
+    /// selection. Toggled with M.
+    private(set) var isMeasuring = false
     private(set) var strokeColor = PixelColor(red: 255, green: 59, blue: 48)
     private(set) var strokeWidth: CGFloat = 4
 
@@ -51,6 +54,7 @@ final class OverlayCoordinator {
         self.annotations.removeAll()
         self.draft = nil
         self.activeTool = nil
+        self.isMeasuring = false
         previousApp = NSWorkspace.shared.frontmostApplication
 
         windows = shots.map { OverlayWindow(shot: $0, coordinator: self) }
@@ -121,6 +125,7 @@ final class OverlayCoordinator {
         annotations.removeAll()
         draft = nil
         activeTool = nil
+        isMeasuring = false
 
         // Hand focus back to whatever the user was actually working in.
         previousApp?.activate()
@@ -158,6 +163,13 @@ final class OverlayCoordinator {
     var displayBounds: CGRect? {
         shots.map(\.geometry.frame).reduce(nil) { union, frame in
             union.map { $0.union(frame) } ?? frame
+        }
+    }
+
+    func toggleMeasuring() {
+        isMeasuring.toggle()
+        for window in windows {
+            window.rootView?.apply(isMeasuring: isMeasuring)
         }
     }
 

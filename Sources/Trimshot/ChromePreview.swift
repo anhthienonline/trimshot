@@ -71,20 +71,22 @@ enum ChromePreview {
 
         let marks = sampleAnnotations(in: selection)
 
-        let states: [(name: String, settled: Bool, marks: [Annotation])] = [
-            ("chrome-dragging", false, []),
-            ("chrome-settled", true, []),
-            ("chrome-annotated", true, marks),
+        let states: [(name: String, settled: Bool, marks: [Annotation], measuring: Bool)] = [
+            ("chrome-dragging", false, [], false),
+            ("chrome-settled", true, [], false),
+            ("chrome-annotated", true, marks, false),
+            ("chrome-measuring", false, [], true),
         ]
 
         for state in states {
             guard
                 let image = render(
                     shot: shot,
-                    selection: selection,
+                    selection: state.measuring ? nil : selection,
                     pointer: pointer,
                     isSettled: state.settled,
-                    annotations: state.marks
+                    annotations: state.marks,
+                    measuring: state.measuring
                 ),
                 let cropped = crop(image, to: inspectRegion, shot: shot)
             else {
@@ -360,10 +362,11 @@ enum ChromePreview {
     /// the bitmap is drawn first and the view is rendered on top of it.
     private static func render(
         shot: DisplayShot,
-        selection: CGRect,
+        selection: CGRect?,
         pointer: CGPoint?,
         isSettled: Bool,
-        annotations: [Annotation]
+        annotations: [Annotation],
+        measuring: Bool = false
     ) -> CGImage? {
         let pointSize = shot.geometry.frame.size
         let pixelSize = shot.geometry.pixelSize
@@ -395,6 +398,7 @@ enum ChromePreview {
         chrome.pointer = pointer
         chrome.isSettled = isSettled
         chrome.annotations = annotations
+        chrome.isMeasuring = measuring
 
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = context
