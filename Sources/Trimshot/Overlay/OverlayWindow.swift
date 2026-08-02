@@ -16,8 +16,7 @@ final class OverlayWindow: NSWindow {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
-        // .screenSaver clears the menu bar, the Dock, and full-screen apps.
-        level = .screenSaver
+        level = OverlayLevel.capture
         collectionBehavior = [
             .canJoinAllSpaces,
             .fullScreenAuxiliary,

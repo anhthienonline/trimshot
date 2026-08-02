@@ -40,9 +40,7 @@ enum HUD {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
-        // Above the capture overlay, which sits at .screenSaver — otherwise the
-        // copy-colour confirmation would be drawn underneath it and never seen.
-        panel.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)
+        panel.level = OverlayLevel.hud
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 

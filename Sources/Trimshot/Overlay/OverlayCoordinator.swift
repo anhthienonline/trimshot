@@ -355,7 +355,10 @@ extension OverlayCoordinator: ToolbarDelegate {
         // image, and finding out the clipboard was empty *after* placing it is a bad trade.
         if tool == .image {
             guard let image = loadImageToPlace() else {
-                HUD.show("Copy an image first, or pick a file", duration: .milliseconds(1800))
+                // Nothing to place, so the tool does not arm — but the toolbar has to be told,
+                // or the button it just highlighted stays highlighted for a tool that is off.
+                HUD.show("Copy an image first, or choose a file", duration: .milliseconds(1800))
+                refreshToolbar()
                 return
             }
             pendingImage = image

@@ -43,11 +43,10 @@ final class ToolbarWindow: NSPanel {
         sharingType = .none
 
         // Order matters, and getting it wrong hides the toolbar completely: setting
-        // `isFloatingPanel` overwrites `level` with `.floating` (3), which is far below the
-        // overlay at `.screenSaver` (1000) — so the bar renders underneath the capture it
-        // belongs to and is never seen. Assign the level last.
+        // `isFloatingPanel` overwrites `level` with `.floating` (3), far below the overlay.
+        // Assign the level last. See OverlayLevel.
         isFloatingPanel = true
-        level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)
+        level = OverlayLevel.toolbar
 
         contentView = bar
         setContentSize(bar.fittingSize)

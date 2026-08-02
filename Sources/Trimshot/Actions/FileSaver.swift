@@ -12,6 +12,17 @@ enum FileSaverError: LocalizedError {
 
 enum FileSaver {
 
+    /// Lifts a panel above the capture overlay.
+    ///
+    /// A panel defaults to level 0 while the overlay sits at `.screenSaver` (1000), so any
+    /// picker opened during a capture appears *behind* it — invisible, while `runModal()`
+    /// blocks the app in a modal session. The symptom is the whole toolbar going dead with
+    /// nothing on screen to explain why.
+    @MainActor
+    private static func raiseAboveOverlay(_ panel: NSSavePanel) {
+        panel.level = OverlayLevel.panel
+    }
+
     /// Writes the capture into the configured folder and returns where it landed.
     @discardableResult
     static func save(
@@ -39,6 +50,7 @@ enum FileSaver {
 
         NSApp.activate(ignoringOtherApps: true)
         let panel = NSSavePanel()
+        raiseAboveOverlay(panel)
         panel.allowedContentTypes = format == .png ? [.png] : [.jpeg]
         panel.nameFieldStringValue = defaultFilename(format: format)
         panel.directoryURL = Settings.shared.saveDirectory
@@ -53,6 +65,7 @@ enum FileSaver {
     static func chooseImage() -> CGImage? {
         NSApp.activate(ignoringOtherApps: true)
         let panel = NSOpenPanel()
+        raiseAboveOverlay(panel)
         panel.allowedContentTypes = [.image]
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false

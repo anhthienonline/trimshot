@@ -45,8 +45,14 @@ without a new case in `TrimshotChecks/main.swift` is not finished.
 
 Collected because each of these cost real debugging time:
 
-- **`isFloatingPanel = true` silently resets `NSWindow.level`.** Assign the level *after* it,
-  or the toolbar renders underneath the overlay and is never seen.
+- **Window levels are the most repeated bug in this codebase — three so far.** They all go
+  through `OverlayLevel` now, and `--render-chrome` asserts the ordering. The three:
+  `isFloatingPanel = true` silently resets `NSWindow.level`, so the toolbar rendered under the
+  overlay; the HUD sat at `.statusBar`, a thousand levels below the overlay it had to appear
+  over; and an `NSOpenPanel` defaults to level 0, so a file picker opened behind the overlay
+  — invisible, while `runModal()` froze the app with nothing on screen to explain it. Every
+  one was silent. Anything new that shows a window during a capture gets its level from
+  `OverlayLevel`.
 - **Vision's Vietnamese tag is `vi-VT`, not `vi-VN`.** The sensible-looking one is silently
   ignored, leaving English-only recognition. Recognition revision 3 is also required.
 - **macOS 26 wraps every legacy `.icns` in its own squircle.** Icon artwork is full-bleed for

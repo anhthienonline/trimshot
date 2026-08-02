@@ -127,7 +127,11 @@ enum ChromePreview {
         }
         let f = panel.frame
         print("  window frame             (\(Int(f.minX)), \(Int(f.minY)), \(Int(f.width))×\(Int(f.height)))")
-        print("  window level             \(panel.level.rawValue)  (overlay sits at \(NSWindow.Level.screenSaver.rawValue))")
+        print("  window level             \(panel.level.rawValue)  (overlay \(OverlayLevel.capture.rawValue), panels \(OverlayLevel.panel.rawValue))")
+        guard OverlayLevel.isOrderedCorrectly else {
+            print("  ✗ OverlayLevel ordering is broken — something will render invisibly")
+            return false
+        }
 
         guard fitting.width > 100, fitting.height > 20 else {
             print("  ✗ the view reports no usable size, so the panel is effectively invisible")
@@ -310,13 +314,15 @@ enum ChromePreview {
             return false
         }
 
+        // Informational only. Whether the screen happens to contain text in the sampled
+        // region is not a property of this code, and failing the run over it is a false
+        // negative — the deterministic gate is the synthetic sample below.
         do {
             let text = try OCRService.recognizeText(inSync: image)
             let lines = text.split(separator: "\n")
             print("  screen text: \(lines.count) lines, first: \(lines.first ?? "—")")
         } catch {
-            print("  ✗ screen text: \(error.localizedDescription)")
-            return false
+            print("  screen text: none in this region — not a failure")
         }
 
         // A synthetic sample, so the accent test does not depend on whatever happens to be
