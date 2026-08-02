@@ -58,6 +58,11 @@ Collected because each of these cost real debugging time:
   on the main queue are never serviced. Use `begin(completionHandler:)`, which presents the
   same panel as an ordinary window — visible, unoccluded and key, measured in the same
   situation.
+- **`NSWindow.acceptsMouseMovedEvents` defaults to false.** Without it `mouseMoved:` is never
+  delivered, so anything tracking the cursor silently freezes at wherever the pointer was when
+  the window opened. This shipped broken in the magnifier and the measure tool because
+  `--render-chrome` sets the pointer directly — a harness that assigns state cannot catch state
+  that is never assigned at runtime. Features that follow the cursor need a real click-through.
 - **Vision's Vietnamese tag is `vi-VT`, not `vi-VN`.** The sensible-looking one is silently
   ignored, leaving English-only recognition. Recognition revision 3 is also required.
 - **macOS 26 wraps every legacy `.icns` in its own squircle.** Icon artwork is full-bleed for

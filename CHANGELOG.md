@@ -55,7 +55,8 @@ First public build.
 
 ### Output
 
-- Copy to clipboard as PNG and TIFF, save to a configured folder or through a panel.
+- Copy to clipboard as PNG and TIFF, save to a configured folder or through a panel. The
+  format preference governs saved files only — copies stay lossless.
 - No network access. There is no networking code in the binary.
 
 ### App

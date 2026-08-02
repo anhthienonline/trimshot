@@ -66,6 +66,20 @@ final class PreferencesWindowController: NSWindowController {
         formatPicker.target = self
         formatPicker.action = #selector(formatChanged)
 
+        // The label used to read just "Format", which reasonably reads as "the format
+        // Trimshot uses" — and then a copy still pastes as PNG. Say which one it governs, and
+        // why the clipboard does not follow it.
+        let formatNote = NSTextField(
+            labelWithString: "Copies are always PNG — lossless, so a colour check stays exact"
+        )
+        formatNote.font = .systemFont(ofSize: 11)
+        formatNote.textColor = .secondaryLabelColor
+
+        let formatStack = NSStackView(views: [formatPicker, formatNote])
+        formatStack.orientation = .horizontal
+        formatStack.alignment = .centerY
+        formatStack.spacing = 10
+
         let copyToggle = NSButton(
             checkboxWithTitle: "Also copy to the clipboard when saving",
             target: self,
@@ -83,7 +97,7 @@ final class PreferencesWindowController: NSWindowController {
         let grid = NSGridView(views: [
             [label("Shortcut"), recorder],
             [label("Save to"), directoryStack],
-            [label("Format"), formatPicker],
+            [label("Save format"), formatStack],
             [NSGridCell.emptyContentView, copyToggle],
             [NSGridCell.emptyContentView, loginToggle],
         ])
@@ -94,8 +108,9 @@ final class PreferencesWindowController: NSWindowController {
 
         let hint = NSTextField(
             labelWithString: """
-                In the overlay: drag to select, ⌘A for the whole screen, C copies the \
-                colour under the cursor, ⌘Z undoes a mark, ⌘C copies, ⌘S saves, esc cancels.
+                In the overlay: drag to select, ⌘A for the whole screen, M measures the gap \
+                under the cursor, C copies its colour, ⌘Z undoes a mark, ⌘C copies, ⌘S saves, \
+                esc cancels.
                 """
         )
         hint.font = .systemFont(ofSize: 11)

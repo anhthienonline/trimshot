@@ -66,7 +66,7 @@ launch.
 | arrows, `⇧`+arrows, `⌥`+arrows | nudge by 1 pt, 10 pt, resize by 1 pt |
 | `⌘A` | select the whole display |
 | `C` | copy the HEX colour under the cursor |
-| `M` | measure mode — reports the gap the cursor sits in |
+| `M` | measure mode — reports the gap the cursor sits in, in px and pt |
 | `⌘Z` / `⌘⇧Z` | undo / redo an annotation |
 | `⌘C` / `return` | copy the selection |
 | `⌘S` / `⌘⇧S` | save to the configured folder / via a panel |
@@ -88,6 +88,10 @@ distance-to-stroke hit testing, so those are not pickable rather than pickable a
 The magnifier follows the cursor while selecting: an 8× pixel grid with the HEX value and
 pixel coordinate under the crosshair. The size readout gives both pixels and points, which
 is what you want when checking a build against a Figma frame on a Retina display.
+
+The **save format** setting governs saved files only. Copies are always PNG: a JPEG on the
+pasteboard would put compression artefacts into every pasted capture, and colours and edges
+are the thing this tool exists to check.
 
 **OCR** reads Vietnamese and English on-device via Vision and puts the text on the
 clipboard. Note that Vision's Vietnamese language tag is `vi-VT`, not the `vi-VN` you would
