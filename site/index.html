@@ -9,7 +9,7 @@
   content="A macOS capture tool that freezes the screen before you select, reports points and pixels together, and matches Apple's own screencapture to 0.01 of one 8-bit level."
 />
 <meta name="theme-color" content="#0e6b78" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#0c1215" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#071a1f" media="(prefers-color-scheme: dark)" />
 <meta property="og:title" content="Trimshot — a measuring instrument for design QA" />
 <meta
   property="og:description"
@@ -46,12 +46,14 @@
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --paper: #0c1215;
-      --surface: #121a1e;
-      --raised: #162026;
-      --ink: #e7eef0;
-      --muted: #8a9aa1;
-      --hairline: #212d33;
+      /* A petrol-tinted ground rather than neutral near-black. Every dark app landing
+         page is #0b0b0d with a blue button; a blueprint is not. */
+      --paper: #071a1f;
+      --surface: #0c262c;
+      --raised: #103037;
+      --ink: #e3f0f2;
+      --muted: #7fa3aa;
+      --hairline: #1a444d;
       --petrol: #5fd3de;
       --petrol-ink: #05171b;
       --measure: #ff6c99;
@@ -60,12 +62,12 @@
     }
   }
   :root[data-theme="dark"] {
-    --paper: #0c1215;
-    --surface: #121a1e;
-    --raised: #162026;
-    --ink: #e7eef0;
-    --muted: #8a9aa1;
-    --hairline: #212d33;
+    --paper: #071a1f;
+    --surface: #0c262c;
+    --raised: #103037;
+    --ink: #e3f0f2;
+    --muted: #7fa3aa;
+    --hairline: #1a444d;
     --petrol: #5fd3de;
     --petrol-ink: #05171b;
     --measure: #ff6c99;
@@ -145,12 +147,62 @@
   .btn-ghost:hover { border-color: var(--muted); }
   .btn small { font-family: var(--mono); font-size: 0.6875rem; opacity: 0.75; font-weight: 400; }
 
-  /* ---- Hero ------------------------------------------------------------ */
-  header { padding: clamp(2.5rem, 7vw, 5rem) 0 0; }
-  h1 { font-size: clamp(2.25rem, 6vw, 3.5rem); line-height: 1.05; max-width: 26ch; }
-  .lede { max-width: var(--col); margin-top: 1.5rem; font-size: 1.1875rem; color: var(--muted); }
+  /* ---- The sheet ---------------------------------------------------------
+     The page is laid out as a measured drawing: a ruler down the left edge,
+     and a title block instead of the usual centred hero. Both come from the
+     subject — this is a tool for measuring what is on screen.              */
+  .sheet { display: grid; grid-template-columns: 34px 1fr; gap: 0 clamp(1rem, 3vw, 2rem); }
+  /* A `1fr` grid track refuses to shrink below its content's min-content width, so the
+     comparison table's `min-width: 34rem` was widening the whole column and scrolling the
+     page sideways. `min-width: 0` lets the track shrink and hands the overflow back to the
+     scroll containers that are meant to absorb it. */
+  .plate { min-width: 0; }
+  .table-scroll, .compare, .data { min-width: 0; }
+  @media (max-width: 46rem) { .sheet { grid-template-columns: 1fr; } .rail { display: none; } }
+
+  /* Ticks every 8 px, a longer one every 40. A real scale, not a decorative bar. */
+  .rail {
+    position: relative; border-right: 1px solid var(--hairline);
+    background:
+      repeating-linear-gradient(to bottom, var(--hairline) 0 1px, transparent 1px 8px)
+        right top / 6px 100% no-repeat,
+      repeating-linear-gradient(to bottom, var(--hairline) 0 1px, transparent 1px 40px)
+        right top / 13px 100% no-repeat;
+  }
+
+  /* ---- Title block ------------------------------------------------------
+     Borrowed wholesale from an engineering drawing: bordered cells, mono
+     labels, the facts you need before reading anything else.               */
+  .titleblock {
+    border: 1px solid var(--ink); margin: clamp(2rem, 5vw, 3.5rem) 0 0;
+    display: grid; grid-template-columns: 2fr 1fr 1fr;
+  }
+  @media (max-width: 40rem) { .titleblock { grid-template-columns: 1fr 1fr; } }
+  .tb-cell {
+    padding: 0.875rem 1rem; border-right: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; flex-direction: column; gap: 0.25rem; min-width: 0;
+  }
+  .tb-cell:last-child { border-right: 0; }
+  .tb-wide { grid-column: 1 / -1; border-right: 0; }
+  .titleblock > .tb-cell:last-child, .titleblock > .tb-wide:last-child { border-bottom: 0; }
+  .tb-cell .k {
+    font-family: var(--mono); font-size: 0.625rem; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .tb-cell .v { font-size: 0.9375rem; font-weight: 500; }
+  .tb-cell .v.mono { font-weight: 400; }
+  .tb-name {
+    font-size: clamp(1.75rem, 5vw, 2.75rem); line-height: 1.05; letter-spacing: -0.02em;
+    font-weight: 600; margin: 0;
+  }
+
+  header { padding: clamp(1.5rem, 4vw, 2.5rem) 0 0; }
+  .thesis {
+    max-width: var(--col); margin-top: 2rem; font-size: 1.125rem; color: var(--ink);
+  }
+  .thesis + .thesis { margin-top: 1rem; color: var(--muted); font-size: 1rem; }
   .cta { display: flex; gap: 0.75rem; margin-top: 2rem; flex-wrap: wrap; align-items: center; }
-  .req { margin-top: 1rem; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
 
   /* ---- Product figure ---------------------------------------------------
      A faithful recreation of the capture overlay in CSS rather than a
@@ -275,15 +327,35 @@
   .yes { color: var(--petrol); font-family: var(--mono); }
   .no { color: var(--muted); font-family: var(--mono); }
 
-  /* ---- Features -------------------------------------------------------- */
-  .features {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-    gap: 1px; background: var(--hairline);
-    border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden;
+  /* ---- Features ---------------------------------------------------------
+     A specification list with leader dots, the way a parts schedule reads.
+     Icon cards in an auto-fit grid is the default every tool page reaches
+     for, including the one this is measured against.                      */
+  .spec { display: flex; flex-direction: column; }
+  .spec > div {
+    display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr;
+    gap: 0.25rem 1.5rem; padding: 1.125rem 0; border-bottom: 1px solid var(--hairline);
+    align-items: baseline;
   }
-  .features > div { background: var(--surface); padding: 1.5rem; }
-  .features h3 { font-size: 0.9375rem; margin-bottom: 0.5rem; }
-  .features p { font-size: 0.9375rem; color: var(--muted); }
+  .spec > div:first-child { border-top: 1px solid var(--hairline); }
+  @media (max-width: 34rem) {
+    .spec > div { grid-template-columns: 1fr; }
+    /* The leader dots need a single unwrapped line to run along, but nowrap on a narrow
+       screen pushes the whole page sideways. Below the breakpoint the dots go and the
+       title is allowed to wrap. */
+    .spec h3 { white-space: normal; }
+    .spec h3::after { display: none; }
+  }
+  .spec h3 {
+    font-size: 0.9375rem; font-weight: 600; display: flex; align-items: baseline;
+    gap: 0.5rem; white-space: nowrap; overflow: hidden;
+  }
+  /* The leader dots that carry the eye across to the description. */
+  .spec h3::after {
+    content: ""; flex: 1; min-width: 1rem;
+    border-bottom: 1px dotted var(--hairline); transform: translateY(-0.2em);
+  }
+  .spec p { font-size: 0.9375rem; color: var(--muted); max-width: 52ch; }
 
   /* ---- Tables ---------------------------------------------------------- */
   .data { overflow-x: auto; }
@@ -336,6 +408,9 @@
 </defs></svg>
 
 <div class="wrap">
+<div class="sheet">
+  <div class="rail" aria-hidden="true"></div>
+  <div class="plate">
 
   <nav>
     <span class="lockup">
@@ -351,19 +426,53 @@
   </nav>
 
   <header>
-    <h1>A measuring instrument that happens to take screenshots.</h1>
-    <p class="lede">
+    <div class="titleblock">
+      <div class="tb-cell">
+        <span class="k">Instrument</span>
+        <p class="tb-name">Trimshot</p>
+      </div>
+      <div class="tb-cell">
+        <span class="k">Reads in</span>
+        <span class="v mono">points + pixels</span>
+      </div>
+      <div class="tb-cell">
+        <span class="k">Deviation</span>
+        <span class="v mono">0.01 / 255</span>
+      </div>
+      <div class="tb-cell">
+        <span class="k">Platform</span>
+        <span class="v mono">macOS 14+</span>
+      </div>
+      <div class="tb-cell">
+        <span class="k">Size</span>
+        <span class="v mono">516 KB</span>
+      </div>
+      <div class="tb-cell">
+        <span class="k">Sends data</span>
+        <span class="v mono">never</span>
+      </div>
+      <div class="tb-cell tb-wide">
+        <span class="k">Purpose</span>
+        <span class="v">Checking a build against the design it came from.</span>
+      </div>
+    </div>
+
+    <p class="thesis">
       Trimshot freezes every display the instant you press the shortcut, then lets you
-      select. The pixels you crop are exactly the pixels you saw — and it reports them in
-      points <em>and</em> pixels, because on a Retina screen neither number is the whole
-      answer.
+      select. The pixels you crop are exactly the pixels you saw.
     </p>
+    <p class="thesis">
+      It reports them in points <em>and</em> pixels, because on a Retina screen neither
+      number is the whole answer — and it states its own error, measured against Apple's
+      <code>screencapture</code> of the same region, rather than calling itself
+      pixel-perfect.
+    </p>
+
     <div class="cta">
       <a class="btn btn-primary" href="Trimshot.dmg" download>Download for macOS<small>516 KB</small></a>
       <a class="btn btn-ghost" href="#install">Read the install note first</a>
       <a class="btn btn-ghost" href="https://github.com/hokhacthien91/trimshot">View source</a>
     </div>
-    <p class="req">macOS 14+ · Apple Silicon · no account, no network, no dependencies</p>
 
     <figure class="shot">
       <div class="screen" role="img"
@@ -458,7 +567,7 @@
       <hr class="rule" />
       <p class="label">Features</p>
     </div>
-    <div class="features">
+    <div class="spec">
       <div>
         <h3>Both units, always</h3>
         <p><span class="mono">840 × 480 px · 420 × 240 pt</span> — the pair you need when a
@@ -609,6 +718,8 @@ brew install --cask trimshot</pre>
     </div>
   </footer>
 
+  </div>
+</div>
 </div>
 </body>
 </html>
