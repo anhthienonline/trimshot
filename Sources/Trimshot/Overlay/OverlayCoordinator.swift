@@ -123,6 +123,16 @@ final class OverlayCoordinator: NSObject {
     }
 
     private func teardown() {
+        // NSColorPanel is shared and app-wide, and this raised it to OverlayLevel.panel.
+        // Left open it would float above every window on the system for the rest of the
+        // session, so it has to be put away with the overlay that summoned it.
+        if NSColorPanel.sharedColorPanelExists {
+            let panel = NSColorPanel.shared
+            panel.setTarget(nil)
+            panel.setAction(nil)
+            panel.orderOut(nil)
+        }
+
         toolbar?.orderOut(nil)
         toolbar = nil
         for window in windows {

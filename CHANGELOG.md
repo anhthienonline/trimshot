@@ -69,6 +69,9 @@ First public build.
 
 ### App
 
+- Settings carries what the app is and links to the site, the source and the privacy
+  page — a menu-bar app has no About window, no Dock icon and no first-run screen to
+  say it anywhere else.
 - Menu bar only, no Dock icon. Default shortcut `⌃G`, rebindable in Settings.
 - Registers itself as a login item on first run from `/Applications`, once.
 - Universal builds available; the default build is Apple Silicon only.

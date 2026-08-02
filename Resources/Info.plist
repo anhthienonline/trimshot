@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Trimshot</string>
 	<key>CFBundleExecutable</key>
 	<string>Trimshot</string>
 	<key>CFBundleIconFile</key>
@@ -20,13 +22,16 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.developer-tools</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
-	<!-- Menu-bar-only app: no Dock icon, no ⌘-Tab entry. -->
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Thien Ho. MIT licensed.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

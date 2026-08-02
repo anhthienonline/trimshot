@@ -319,7 +319,56 @@ enum ChromePreview {
             return false
         }
 
+        guard reportSettings(outputDirectory: outputDirectory) else { return false }
+
         return reportOCR(on: cropped)
+    }
+
+    /// Snapshots the Settings window. It is the only window in the app, it cannot be opened
+    /// from a script without Accessibility permission, and a menu-bar app has nowhere else to
+    /// explain itself — so it is worth being able to look at.
+    private static func reportSettings(outputDirectory: URL) -> Bool {
+        let controller = PreferencesWindowController()
+        guard let content = controller.window?.contentView else {
+            print("\nSettings\n  ✗ no content view")
+            return false
+        }
+        content.layoutSubtreeIfNeeded()
+
+        print("\nSettings")
+        print("  content size             \(Int(content.bounds.width))×\(Int(content.bounds.height))")
+
+        // Every label must fit. A clipped explanation is worse than none, and this is the one
+        // place the app describes itself.
+        var clipped: [String] = []
+        func walk(_ view: NSView) {
+            if let field = view as? NSTextField, !field.stringValue.isEmpty {
+                let needed = field.intrinsicContentSize
+                if field.frame.height + 0.5 < min(needed.height, field.frame.height * 4),
+                   field.maximumNumberOfLines == 1, needed.width > field.frame.width + 0.5 {
+                    clipped.append(String(field.stringValue.prefix(40)))
+                }
+            }
+            view.subviews.forEach(walk)
+        }
+        walk(content)
+        if !clipped.isEmpty {
+            print("  ✗ clipped labels: \(clipped)")
+            return false
+        }
+        print("  labels                   none clipped")
+
+        guard let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) else {
+            print("  ✗ could not snapshot")
+            return false
+        }
+        content.cacheDisplay(in: content.bounds, to: rep)
+        if let image = rep.cgImage {
+            let url = outputDirectory.appendingPathComponent("settings.png")
+            write(image, to: url)
+            print("  \(image.width)×\(image.height)  → \(url.path)")
+        }
+        return true
     }
 
     /// Exercises the OCR path on real screen text and reports which languages Vision

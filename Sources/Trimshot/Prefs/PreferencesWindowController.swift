@@ -14,7 +14,7 @@ final class PreferencesWindowController: NSWindowController {
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 430, height: 250),
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 380),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -108,8 +108,8 @@ final class PreferencesWindowController: NSWindowController {
 
         let hint = NSTextField(
             labelWithString: """
-                In the overlay: drag to select, ⌘A for the whole screen, M measures the gap \
-                under the cursor, C copies its colour, ⌘Z undoes a mark, ⌘C copies, ⌘S saves, \
+                In the overlay: drag to select, ⌘A for the whole screen, M for the ruler, \
+                C copies the colour under the cursor, ⌘Z undoes a mark, ⌘C copies, ⌘S saves, \
                 esc cancels.
                 """
         )
@@ -120,9 +120,16 @@ final class PreferencesWindowController: NSWindowController {
         hint.preferredMaxLayoutWidth = 380
         hint.translatesAutoresizingMaskIntoConstraints = false
 
+        let about = buildAbout()
+        let divider = NSBox()
+        divider.boxType = .separator
+        divider.translatesAutoresizingMaskIntoConstraints = false
+
         let container = NSView()
         container.addSubview(grid)
         container.addSubview(hint)
+        container.addSubview(divider)
+        container.addSubview(about)
 
         NSLayoutConstraint.activate([
             grid.topAnchor.constraint(equalTo: container.topAnchor, constant: 22),
@@ -131,11 +138,71 @@ final class PreferencesWindowController: NSWindowController {
 
             hint.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 22),
             hint.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -22),
-            hint.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -18),
-            hint.topAnchor.constraint(greaterThanOrEqualTo: grid.bottomAnchor, constant: 18),
+            hint.topAnchor.constraint(equalTo: grid.bottomAnchor, constant: 18),
+
+            divider.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 22),
+            divider.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -22),
+            divider.topAnchor.constraint(equalTo: hint.bottomAnchor, constant: 16),
+
+            about.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 22),
+            about.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -22),
+            about.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 16),
+            about.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -18),
         ])
 
         return container
+    }
+
+    /// What the app is, and where to read more. A menu-bar app has nowhere else to say it —
+    /// there is no About window, no Dock icon, no first-run screen.
+    private func buildAbout() -> NSView {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+
+        let title = NSTextField(labelWithString: "Trimshot \(version)")
+        title.font = .systemFont(ofSize: 12, weight: .semibold)
+
+        let blurb = NSTextField(
+            labelWithString: """
+                A measuring instrument for design QA. It freezes every display before you \
+                select, so the pixels you crop are the pixels you saw, and reports every \
+                reading in CSS pixels — the unit your design is already in.
+                """
+        )
+        blurb.font = .systemFont(ofSize: 11)
+        blurb.textColor = .secondaryLabelColor
+        blurb.lineBreakMode = .byWordWrapping
+        blurb.maximumNumberOfLines = 4
+        blurb.preferredMaxLayoutWidth = 400
+
+        let links = NSStackView(views: [
+            linkButton("trimshot.app", url: "https://trimshot.app"),
+            linkButton("Source", url: "https://github.com/hokhacthien91/trimshot"),
+            linkButton("Privacy", url: "https://trimshot.app/privacy"),
+        ])
+        links.orientation = .horizontal
+        links.spacing = 14
+
+        let stack = NSStackView(views: [title, blurb, links])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }
+
+    private func linkButton(_ title: String, url: String) -> NSButton {
+        let button = NSButton(title: title, target: self, action: #selector(openLink(_:)))
+        button.isBordered = false
+        button.contentTintColor = .linkColor
+        button.font = .systemFont(ofSize: 11)
+        button.toolTip = url
+        button.identifier = NSUserInterfaceItemIdentifier(url)
+        return button
+    }
+
+    @objc private func openLink(_ sender: NSButton) {
+        guard let raw = sender.identifier?.rawValue, let url = URL(string: raw) else { return }
+        NSWorkspace.shared.open(url)
     }
 
     private func label(_ text: String) -> NSTextField {

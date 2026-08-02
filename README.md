@@ -55,6 +55,9 @@ menu bar as a **camera inside viewfinder brackets**. Three ways in:
 - click the menu bar icon → **Capture Area**
 - the icon's menu also has Open Save Folder, Settings… and Quit
 
+Settings carries the shortcut, save folder and format, plus what the app is and links to the
+site, the source and the privacy page.
+
 Double-clicking the app in Finder while it is already running shows a HUD and blinks the
 menu bar icon, because otherwise absolutely nothing happens and it looks like a failed
 launch.
