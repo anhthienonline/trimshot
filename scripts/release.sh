@@ -17,7 +17,7 @@ if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPO="anhthienonline/Trimshot"
+REPO="anhthienonline/trimshot"
 DMG="$ROOT/build/dist/Trimshot.dmg"
 CASK="$ROOT/homebrew/trimshot.rb"
 
@@ -87,10 +87,10 @@ Then publish:
         --title "Trimshot $VERSION" \\
         --notes-file CHANGELOG.md
 
-Update the Homebrew tap (a separate repo, github.com/anhthienonline/homebrew-Trimshot):
+Update the Homebrew tap (a separate repo, github.com/anhthienonline/homebrew-trimshot):
 
-    cp homebrew/trimshot.rb ../homebrew-Trimshot/Casks/trimshot.rb
-    cd ../homebrew-Trimshot
+    cp homebrew/trimshot.rb ../homebrew-trimshot/Casks/trimshot.rb
+    cd ../homebrew-trimshot
     git commit -am "trimshot $VERSION" && git push
 
 Then refresh the promo site so its download link points at the new build:

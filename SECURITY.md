@@ -3,7 +3,7 @@
 ## Reporting
 
 Report a vulnerability privately through GitHub's advisory form:
-<https://github.com/anhthienonline/Trimshot/security/advisories/new>. Please do not open a
+<https://github.com/anhthienonline/trimshot/security/advisories/new>. Please do not open a
 public issue for anything exploitable.
 
 Expect an acknowledgement within a week. This is a one-person project, so there is no SLA

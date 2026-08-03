@@ -291,7 +291,7 @@ the manual gate before publishing:
 ### Homebrew
 
 `homebrew/trimshot.rb` is the source of truth for the cask; the tap itself is a separate
-repository (`homebrew-trimshot`, so the tap name is `anhthienonline/Trimshot`).
+repository (`homebrew-trimshot`, so the tap name is `anhthienonline/trimshot`).
 
 **Homebrew does not solve the Gatekeeper problem.** Cask quarantines its downloads by
 default, so `brew install --cask trimshot` on an un-notarised build still needs the same

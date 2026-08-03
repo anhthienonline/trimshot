@@ -67,7 +67,7 @@ Nothing beyond that is collected, and nothing is combined with anything else.
 ## Contact
 
 Questions or corrections: open an issue at
-<https://github.com/anhthienonline/Trimshot/issues>.
+<https://github.com/anhthienonline/trimshot/issues>.
 
 ---
 
