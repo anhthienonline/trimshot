@@ -58,6 +58,32 @@ else
     echo "    WARNING: could not read the check count" >&2
 fi
 
+# The hero draws the toolbar button by button and the caption states how many there are. That
+# figure went stale once already — the published page showed a twelve-button bar long after the
+# app had twenty-five, missing the ruler and the image tool. So derive it from the source of
+# truth on both sides and refuse to deploy a page that disagrees with the app.
+BAR_TOOLS=$(sed -n '/static let tools:/,/^    ]/p' "$ROOT/Sources/Trimshot/Overlay/ToolbarView.swift" | grep -c '^        (\.')
+BAR_COLOURS=$(sed -n '/static let palette:/,/^    ]/p' "$ROOT/Sources/Trimshot/Overlay/ToolbarView.swift" | grep -c 'PixelColor(red:')
+BAR_WIDTHS=$(sed -n '/static let widths:/p' "$ROOT/Sources/Trimshot/Overlay/ToolbarView.swift" | grep -o '([0-9]' | grep -c .)
+# Custom colour, undo, ruler, OCR, copy, save, cancel — the seven that are not in an array.
+BAR_TOTAL=$(( BAR_TOOLS + BAR_COLOURS + BAR_WIDTHS + 7 ))
+
+DRAWN=$(python3 - "$SITE/index.html" <<'PY'
+import re, sys, pathlib
+html = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+bar = re.search(r'<div class="toolbar">(.*?)</div>', html, re.S)
+print(len(re.findall(r'<svg |class="dot|class="w ', bar.group(1))) if bar else 0)
+PY
+)
+
+if [ "$DRAWN" != "$BAR_TOTAL" ]; then
+    echo "    ERROR: the hero draws ${DRAWN} toolbar buttons, the app builds ${BAR_TOTAL}" >&2
+    echo "           update the .toolbar markup in site/index.html to match ToolbarView.swift" >&2
+    exit 1
+fi
+sed -i '' "s|the [0-9][0-9]*-button toolbar|the ${BAR_TOTAL}-button toolbar|g" "$SITE/index.html"
+echo "    hero toolbar matches the app: ${BAR_TOTAL} buttons"
+
 case "${1:-}" in
     --preview)
         echo "==> vercel deploy (preview)"

@@ -298,6 +298,237 @@
     margin-top: 1.25rem; font-size: 0.875rem; color: var(--muted); max-width: var(--col);
   }
 
+  /* ---- Slideshow --------------------------------------------------------
+     Six views of the overlay, cross-faded. Everything inside a frame is
+     sized in `cqw` — 1% of the frame's own width — so one set of values
+     scales from a phone to a wide desktop without a media query, and stays
+     vector-crisp at any density. `.screen` is the query container.        */
+  .frames {
+    position: relative; aspect-ratio: 16 / 10;
+    /* Reserve the room the dots occupy so the page does not shift on load. */
+    margin-bottom: 0.25rem;
+  }
+  /* No JavaScript anywhere on this site: the Content-Security-Policy is
+     `default-src 'none'` with no `script-src`, so every script — inline
+     included — is blocked. A JS slideshow would run from a local file and be
+     dead once deployed. So the rotation is a CSS animation, and picking a
+     view by hand is a radio button read through `:has()`.                  */
+  .frame {
+    position: absolute; inset: 0; opacity: 0;
+    /* Illustrations, not controls — nothing inside is clickable. */
+    pointer-events: none;
+    animation: framecycle 27s linear infinite;
+    animation-delay: calc(var(--i) * 4.5s);
+  }
+  .frame > .screen { position: absolute; inset: 0; container-type: inline-size; }
+
+  /* Six views, 27s round trip: each holds a sixth of the cycle (4.5s), of
+     which 0.6s at each end is the cross-fade. */
+  @keyframes framecycle {
+    0%      { opacity: 0 }
+    2.22%   { opacity: 1 }
+    16.67%  { opacity: 1 }
+    18.89%  { opacity: 0 }
+    100%    { opacity: 0 }
+  }
+
+  /* Hovering or tabbing into the figure holds the current view, so nothing
+     slides away while it is being read. */
+  .carousel:hover .frame,
+  .carousel:focus-within .frame { animation-play-state: paused; }
+
+  /* Choosing a view stops the rotation for good and pins that frame. */
+  .carousel:has(.vr:checked) .frame { animation: none; opacity: 0; }
+  .carousel:has(#v1:checked) .f1, .carousel:has(#v2:checked) .f2,
+  .carousel:has(#v3:checked) .f3, .carousel:has(#v4:checked) .f4,
+  .carousel:has(#v5:checked) .f5, .carousel:has(#v6:checked) .f6 { opacity: 1; }
+
+  /* Frame caption: names the feature on screen, top-right, out of the way of
+     the selection which always sits left-of-centre. */
+  .fcap {
+    position: absolute; right: 2.5%; top: 5%; z-index: 4;
+    background: rgba(8, 14, 17, 0.8); color: #fff; border-radius: 5px;
+    padding: 0.45em 0.7em; font-family: var(--mono); font-size: 1.5cqw;
+    letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+  }
+
+  /* Controls. The dots are <label>s for visually hidden radios, so they are
+     real focusable controls with no script behind them. */
+  .cbar {
+    display: flex; align-items: baseline; gap: 0.75rem 1rem; margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .cdots { display: flex; gap: 0.4rem; }
+  .vr { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .cdots label {
+    display: block; width: 1.75rem; height: 0.375rem; border-radius: 99px;
+    background: var(--hairline); cursor: pointer; transition: background 0.2s;
+  }
+  .cdots label:hover { background: var(--muted); }
+  .vr:checked + label { background: var(--petrol); }
+  .vr:focus-visible + label { outline: 2px solid var(--petrol); outline-offset: 3px; }
+  .chint { font-size: 0.8125rem; color: var(--muted); margin-left: auto; }
+  /* Names each dot for a screen reader without showing the text. `title` alone
+     is not reliably announced. */
+  .sr {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+
+  /* Asked for less motion: no rotation at all. The first view stays put, and
+     the dots still work — they are specificity-heavier than this rule. */
+  @media (prefers-reduced-motion: reduce) {
+    .frame { animation: none; }
+    .f1 { opacity: 1; }
+  }
+
+  /* ---- Frame-scale versions of the overlay chrome ----------------------- */
+  /* Derived from the selection vars, not repeated literals, so a frame can move
+     its selection and the readout follows. */
+  .frame .size-pill {
+    left: var(--sx); top: calc(var(--sy) - 4.3cqw);
+    font-size: 1.45cqw; padding: 0.4em 0.6em; border-radius: 0.6cqw;
+  }
+  .frame .handle { width: 0.85cqw; height: 0.85cqw; margin: -0.075cqw; }
+
+  /* The selection border stays above the stand-in page elements. */
+  .frame .sel { z-index: 2; }
+
+  .frame .loupe { width: 15cqw; border-radius: 1cqw; border-width: 0.1cqw; }
+  /* One cell per source pixel at 8×, so the grid pitch scales with the frame
+     instead of being pinned to 8.8px. */
+  .frame .loupe .grid {
+    position: relative; height: 10cqw; --cell: 1.15cqw;
+    background:
+      repeating-linear-gradient(to right,
+        rgba(255, 255, 255, 0.10) 0 0.1cqw, transparent 0.1cqw var(--cell)),
+      repeating-linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.10) 0 0.1cqw, transparent 0.1cqw var(--cell)),
+      linear-gradient(135deg, #7fd6c4 0 42%, #2f6f8f 42% 58%, #1d3f52 58%);
+  }
+  .frame .loupe .cell {
+    left: calc(50% - var(--cell) / 2); top: calc(50% - var(--cell) / 2);
+    width: var(--cell); height: var(--cell);
+    outline-width: 0.11cqw;
+  }
+  .frame .loupe .read { font-size: 1.15cqw; gap: 0.6em; padding: 0.55em 0.7em; }
+  .frame .loupe .swatch { width: 1.2cqw; height: 1.2cqw; }
+
+  /* Frame 3 is about the loupe, so it gets a bigger one. */
+  .f3 .loupe { width: 30cqw; right: 8%; top: 20%; border-radius: 1.4cqw; }
+  .f3 .loupe .grid { height: 21cqw; --cell: 2.3cqw; }
+  .f3 .loupe .read { font-size: 2cqw; }
+  .f3 .loupe .swatch { width: 2.1cqw; height: 2.1cqw; }
+
+  .frame .toolbar {
+    gap: 0.78cqw; padding: 0.7cqw 1cqw; border-radius: 1cqw;
+    /* The full bar is about 65% of the frame wide. Centred under a selection
+       that sits left of centre it would hang off the edge, so it is clamped —
+       which is what the real bar does against the edge of a display. */
+    left: clamp(35cqw, calc(var(--sx) + var(--sw) / 2), 65cqw);
+    top: calc(var(--sy) + var(--sh) + 1.4cqw);
+  }
+  .frame .toolbar svg { width: 1.62cqw; height: 1.62cqw; }
+  .frame .toolbar .sep { width: 0.11cqw; height: 1.8cqw; }
+  /* The app rings every swatch, which is the only thing that makes the white
+     one visible on a dark bar. */
+  .frame .toolbar .dot {
+    width: 1.3cqw; height: 1.3cqw;
+    box-shadow: inset 0 0 0 0.12cqw rgba(255, 255, 255, 0.35);
+  }
+  /* NOT `.sel` — that is the selection rectangle, and a swatch carrying it
+     inherits `position:absolute; left:var(--sx)` and lands on the selection. */
+  .frame .toolbar .dot.cur { box-shadow: 0 0 0 0.25cqw #fff; }
+  /* Three stroke widths — 2, 4 and 8 pt, drawn at their real ratio. */
+  .frame .toolbar .w { width: 1.7cqw; border-radius: 99px; background: #e7eef0; flex: none; }
+  .frame .toolbar .w1 { height: 0.2cqw }
+  .frame .toolbar .w2 { height: 0.4cqw }
+  .frame .toolbar .w3 { height: 0.8cqw }
+  .frame .toolbar .on { border-radius: 0.45cqw; padding: 0.25cqw; margin: -0.25cqw; }
+
+  /* ---- The measuring device (frame 2) ----------------------------------
+     A rectangle spanning the drag with a dimension line on each axis: width
+     below, height to the left, and the W × H reading in the middle. Magenta,
+     which this palette reserves for something actually measured.          */
+  .mbox {
+    position: absolute; outline: 0.12cqw solid var(--dim-c); z-index: 3;
+  }
+  /* The app's reserved measurement magenta, exactly: SelectionChromeView.Palette.measure. */
+  .frame { --dim-c: #d81b60; }
+  .dimx, .dimy { position: absolute; z-index: 3; color: var(--dim-c); }
+  .dimx { height: 0.12cqw; background: currentColor; }
+  .dimy { width: 0.12cqw; background: currentColor; }
+  /* The serif caps that make an endpoint unambiguous. */
+  .dimx::before, .dimx::after {
+    content: ""; position: absolute; top: -0.55cqw; width: 0.12cqw; height: 1.22cqw;
+    background: currentColor;
+  }
+  .dimx::before { left: 0 } .dimx::after { right: 0 }
+  .dimy::before, .dimy::after {
+    content: ""; position: absolute; left: -0.55cqw; height: 0.12cqw; width: 1.22cqw;
+    background: currentColor;
+  }
+  .dimy::before { top: 0 } .dimy::after { bottom: 0 }
+  .dlabel {
+    position: absolute; z-index: 3; background: rgba(8, 14, 17, 0.82); color: #fff;
+    font-family: var(--mono); font-size: 1.35cqw; padding: 0.3em 0.5em;
+    border-radius: 0.5cqw; white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  /* White on the same black pill the app uses, so the magenta stays the line, not the text. */
+  .dlabel.m { color: #fff; }
+
+  /* Two stand-in elements with a gap worth measuring. */
+  .el {
+    position: absolute; border-radius: 0.6cqw; background: #b9c5cc; z-index: 1;
+  }
+  .el.accent { background: #6b7e8a; }
+
+  /* ---- Marks (frame 4) ------------------------------------------------- */
+  .mark { position: absolute; z-index: 3; }
+  .mark.box { outline: 0.42cqw solid #ff3b30; border-radius: 0.3cqw; }
+  .mark.txt {
+    color: #ff3b30; font-weight: 650; font-size: 2.1cqw; letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  /* The teal frame the app puts around the mark being edited. */
+  .editing { position: absolute; outline: 0.2cqw dashed #5fd3de; z-index: 3; }
+
+  /* ---- Pixelate (frame 5) ---------------------------------------------- */
+  .pixel {
+    position: absolute; z-index: 3;
+    background-image:
+      linear-gradient(90deg, #8b9aa3 25%, #6f8189 25% 50%, #9aa8b0 50% 75%, #7b8b93 75%),
+      linear-gradient(#93a1a9 25%, #7e8e96 25% 50%, #a2b0b7 50% 75%, #74848c 75%);
+    background-size: 3.2cqw 3.2cqw;
+    background-blend-mode: multiply;
+  }
+
+  /* ---- OCR (frame 6) --------------------------------------------------- */
+  .ocr-src {
+    position: absolute; z-index: 1; color: #3d4a52; font-size: 1.9cqw;
+    line-height: 1.5; font-weight: 500;
+  }
+  .ocr-out {
+    position: absolute; z-index: 3; background: rgba(8, 14, 17, 0.88);
+    border: 0.11cqw solid rgba(255, 255, 255, 0.18); border-radius: 0.9cqw;
+    padding: 1cqw 1.2cqw; color: #fff; font-family: var(--mono); font-size: 1.3cqw;
+    line-height: 1.6; max-width: 40cqw;
+  }
+  .ocr-out .tag {
+    display: block; color: #5fd3de; font-size: 1.05cqw; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 0.5em;
+  }
+
+  /* A keyboard hint, the way the overlay shows one. */
+  .hint {
+    position: absolute; z-index: 3; background: rgba(8, 14, 17, 0.8); color: #fff;
+    border-radius: 0.6cqw; padding: 0.45em 0.7em; font-size: 1.35cqw; white-space: nowrap;
+  }
+  .hint kbd {
+    font-family: var(--mono); background: rgba(255, 255, 255, 0.18);
+    border-radius: 0.3cqw; padding: 0.1em 0.35em; margin-right: 0.35em;
+  }
+
   /* The dimension device, used only where something really is measured. */
   .dimline {
     display: flex; align-items: center; gap: 0.6rem; color: var(--measure);
@@ -475,46 +706,245 @@
     </div>
 
     <figure class="shot">
-      <div class="screen" role="img"
-        aria-label="The Trimshot overlay: the screen dimmed, a selection with eight resize handles, a size readout of 420 by 240 CSS pixels, a magnifier showing a pixel grid and hex value, and the annotation toolbar.">
-        <div class="screen-bar"><i></i><i></i><i></i></div>
-        <div class="dim dim-t"></div>
-        <div class="dim dim-b"></div>
-        <div class="dim dim-l"></div>
-        <div class="dim dim-r"></div>
-        <div class="size-pill">420 × 240 px</div>
-        <div class="sel">
-          <span class="handle h-tl"></span><span class="handle h-tc"></span><span class="handle h-tr"></span>
-          <span class="handle h-ml"></span><span class="handle h-mr"></span>
-          <span class="handle h-bl"></span><span class="handle h-bc"></span><span class="handle h-br"></span>
+      <!-- The 25 toolbar symbols, defined once and referenced by each bar.
+           Order and contents match ToolbarView.swift exactly. -->
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+        <g id="t-pen" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20l3-1 11-11-2-2L5 17z"/></g>
+        <g id="t-line" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 19L19 5"/></g>
+        <g id="t-arrow" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 18L18 6M12 6h6v6"/></g>
+        <g id="t-rect" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="7" width="16" height="10" rx="1"/></g>
+        <g id="t-circle" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="7"/></g>
+        <g id="t-marker" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 4l5 5-8 8H7v-5z"/><path d="M4 21h16"/></g>
+        <g id="t-text" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6h12M12 6v12"/></g>
+        <g id="t-checker" fill="currentColor"><path d="M4 4h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 16h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></g>
+        <g id="t-photo" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.4"/><path d="M4 18l5-5 4 4 3-3 4 4"/></g>
+        <g id="t-palette" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3a9 9 0 000 18c1 0 1.6-.7 1.6-1.6 0-1.6 1-2.4 2.4-2.4H18a3 3 0 003-3A9 9 0 0012 3z"/><circle cx="8" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="12.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"/></g>
+        <g id="t-undo" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10H9"/></g>
+        <g id="t-ruler" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M7 8v3M12 8v4M17 8v3"/></g>
+        <g id="t-ocr" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3"/><path d="M8.5 10h7M8.5 14h4.5"/></g>
+        <g id="t-copy" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="12" height="14" rx="2"/><path d="M9 21h8a2 2 0 002-2V9"/></g>
+        <g id="t-save" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v11m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></g>
+        <g id="t-x" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6L6 18"/></g>
+      </defs></svg>
+
+      <div class="carousel">
+        <div class="frames">
+
+          <!-- 1. The overlay as a whole -->
+          <!-- Every frame reads as one 1280 × 800 logical window, so the pill on
+               each is the selection's real size at that scale: 32.8125% of 1280
+               is 420, 30% of 800 is 240, and so on. The numbers agree across
+               frames because they are all derived, not invented per frame. -->
+          <div class="frame f1" style="--i:0">
+            <div class="screen" style="--sx:16%; --sy:28%; --sw:32.8125%; --sh:30%" role="img"
+              aria-label="The overlay: the screen dimmed, a selection with eight handles reading 420 by 240 pixels, the loupe with a hex value, and the full toolbar beneath.">
+              <span class="fcap">Selection</span>
+              <div class="screen-bar"><i></i><i></i><i></i></div>
+              <div class="dim dim-t"></div><div class="dim dim-b"></div>
+              <div class="dim dim-l"></div><div class="dim dim-r"></div>
+              <div class="size-pill">420 × 240 px</div>
+              <div class="sel">
+                <span class="handle h-tl"></span><span class="handle h-tc"></span><span class="handle h-tr"></span>
+                <span class="handle h-ml"></span><span class="handle h-mr"></span>
+                <span class="handle h-bl"></span><span class="handle h-bc"></span><span class="handle h-br"></span>
+              </div>
+              <div class="loupe">
+                <div class="grid"><span class="cell"></span></div>
+                <div class="read"><span class="swatch"></span>#2F6F8F<span style="opacity:.6">1284, 662</span></div>
+              </div>
+              <div class="toolbar">
+                <svg viewBox="0 0 24 24"><use href="#t-pen"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-line"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-arrow"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-rect"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-circle"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-marker"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-text"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-checker"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-photo"/></svg>
+                <span class="sep"></span>
+                <span class="dot cur" style="background:#ff3b30"></span>
+                <span class="dot" style="background:#ffcc00"></span>
+                <span class="dot" style="background:#34c759"></span>
+                <span class="dot" style="background:#0a84ff"></span>
+                <span class="dot" style="background:#fff"></span>
+                <span class="dot" style="background:#000"></span>
+                <svg viewBox="0 0 24 24"><use href="#t-palette"/></svg>
+                <span class="sep"></span>
+                <span class="w w1"></span><span class="w w2"></span><span class="w w3"></span>
+                <span class="sep"></span>
+                <svg viewBox="0 0 24 24"><use href="#t-undo"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-ruler"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-ocr"/></svg>
+                <span class="sep"></span>
+                <svg viewBox="0 0 24 24"><use href="#t-copy"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-save"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-x"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. The ruler: the gap between two elements, dimensioned -->
+          <div class="frame f2" style="--i:1">
+            <div class="screen" style="--sx:10%; --sy:18%; --sw:75%; --sh:60%" role="img"
+              aria-label="Ruler mode: the gap between two elements enclosed in a magenta box, with a dimension line on each axis, reading 160 pixels wide by 72 pixels tall.">
+              <span class="fcap">Ruler</span>
+              <div class="screen-bar"><i></i><i></i><i></i></div>
+              <div class="dim dim-t"></div><div class="dim dim-b"></div>
+              <div class="dim dim-l"></div><div class="dim dim-r"></div>
+              <div class="size-pill">960 × 480 px</div>
+              <!-- Measuring, so the handles are absent. -->
+              <div class="sel"></div>
+              <span class="el accent" style="left:16%; top:42%; width:14%; height:9%"></span>
+              <span class="el" style="left:42.5%; top:42%; width:28%; height:9%"></span>
+              <!-- The gap itself: 30% to 42.5% of 1280 is 160 px, 9% of 800 is 72. -->
+              <span class="mbox" style="left:30%; top:42%; width:12.5%; height:9%"></span>
+              <span class="dimx" style="left:30%; top:57%; width:12.5%"></span>
+              <span class="dlabel m" style="left:36.25%; top:59%; transform:translateX(-50%)">160 px</span>
+              <span class="dimy" style="left:27%; top:42%; height:9%"></span>
+              <span class="dlabel m" style="left:24.5%; top:46.5%; transform:translate(-100%,-50%)">72 px</span>
+              <span class="dlabel" style="left:36.25%; top:46.5%; transform:translate(-50%,-50%)">160 × 72 px</span>
+            </div>
+          </div>
+
+          <!-- 3. The loupe -->
+          <div class="frame f3" style="--i:2">
+            <div class="screen" style="--sx:19%; --sy:29%; --sw:30%; --sh:30%" role="img"
+              aria-label="The magnifier enlarged: an eight-times pixel grid with the centre pixel outlined, its hex value 2F6F8F and its coordinates.">
+              <span class="fcap">Magnifier</span>
+              <div class="screen-bar"><i></i><i></i><i></i></div>
+              <div class="dim dim-t"></div><div class="dim dim-b"></div>
+              <div class="dim dim-l"></div><div class="dim dim-r"></div>
+              <div class="size-pill">384 × 240 px</div>
+              <div class="sel">
+                <span class="handle h-tl"></span><span class="handle h-tc"></span><span class="handle h-tr"></span>
+                <span class="handle h-ml"></span><span class="handle h-mr"></span>
+                <span class="handle h-bl"></span><span class="handle h-bc"></span><span class="handle h-br"></span>
+              </div>
+              <div class="loupe">
+                <div class="grid"><span class="cell"></span></div>
+                <div class="read"><span class="swatch"></span>#2F6F8F<span style="opacity:.6">1284, 662</span></div>
+              </div>
+              <span class="hint" style="left:20%; top:64%"><kbd>C</kbd>copies the hex</span>
+            </div>
+          </div>
+
+          <!-- 4. Annotation -->
+          <div class="frame f4" style="--i:3">
+            <div class="screen" style="--sx:14%; --sy:24%; --sw:50%; --sh:45%" role="img"
+              aria-label="Annotation: a red rectangle and arrow marking an element, a text note, and the mark being edited framed in teal.">
+              <span class="fcap">Annotate</span>
+              <div class="screen-bar"><i></i><i></i><i></i></div>
+              <div class="dim dim-t"></div><div class="dim dim-b"></div>
+              <div class="dim dim-l"></div><div class="dim dim-r"></div>
+              <div class="size-pill">640 × 360 px</div>
+              <!-- Rectangle is armed, so the handles yield to it. -->
+              <div class="sel"></div>
+              <span class="el accent" style="left:19%; top:34%; width:17%; height:9%"></span>
+              <span class="el" style="left:19%; top:50%; width:33%; height:5%"></span>
+              <span class="mark box" style="left:18%; top:33%; width:19%; height:11%"></span>
+              <svg class="mark" style="left:38%; top:28%; width:14%; height:14%" viewBox="0 0 40 40"
+                fill="none" stroke="#ff3b30" stroke-width="3.4" stroke-linecap="round">
+                <path d="M34 8L12 30"/><path d="M12 18v12h12"/>
+              </svg>
+              <span class="mark txt" style="left:53%; top:26%">8 px off</span>
+              <span class="editing" style="left:52%; top:24.5%; width:13%; height:6.5%"></span>
+              <div class="toolbar">
+                <svg viewBox="0 0 24 24"><use href="#t-pen"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-line"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-arrow"/></svg>
+                <svg viewBox="0 0 24 24" class="on"><use href="#t-rect"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-circle"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-marker"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-text"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-checker"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-photo"/></svg>
+                <span class="sep"></span>
+                <span class="dot cur" style="background:#ff3b30"></span>
+                <span class="dot" style="background:#ffcc00"></span>
+                <span class="dot" style="background:#34c759"></span>
+                <span class="dot" style="background:#0a84ff"></span>
+                <span class="dot" style="background:#fff"></span>
+                <span class="dot" style="background:#000"></span>
+                <svg viewBox="0 0 24 24"><use href="#t-palette"/></svg>
+                <span class="sep"></span>
+                <span class="w w1"></span><span class="w w2"></span><span class="w w3"></span>
+                <span class="sep"></span>
+                <svg viewBox="0 0 24 24"><use href="#t-undo"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-ruler"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-ocr"/></svg>
+                <span class="sep"></span>
+                <svg viewBox="0 0 24 24"><use href="#t-copy"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-save"/></svg>
+                <svg viewBox="0 0 24 24"><use href="#t-x"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Pixelate -->
+          <div class="frame f5" style="--i:4">
+            <div class="screen" style="--sx:15%; --sy:26%; --sw:56.25%; --sh:40%" role="img"
+              aria-label="Pixelate: one row of the capture replaced by coarse blocks, hiding it before the screenshot leaves the machine.">
+              <span class="fcap">Pixelate</span>
+              <div class="screen-bar"><i></i><i></i><i></i></div>
+              <div class="dim dim-t"></div><div class="dim dim-b"></div>
+              <div class="dim dim-l"></div><div class="dim dim-r"></div>
+              <div class="size-pill">720 × 320 px</div>
+              <!-- Pixelate is armed — same reason the handles are absent. -->
+              <div class="sel"></div>
+              <span class="el" style="left:20%; top:33%; width:28%; height:4.5%"></span>
+              <span class="el" style="left:20%; top:43%; width:36%; height:4.5%"></span>
+              <span class="el" style="left:20%; top:53%; width:22%; height:4.5%"></span>
+              <span class="pixel" style="left:19.4%; top:42%; width:37.5%; height:7%"></span>
+              <span class="hint" style="left:20%; top:58%">gone before the file leaves the machine</span>
+            </div>
+          </div>
+
+          <!-- 6. OCR -->
+          <div class="frame f6" style="--i:5">
+            <div class="screen" style="--sx:12%; --sy:26%; --sw:50%; --sh:35%" role="img"
+              aria-label="Text recognition: Vietnamese text inside the selection, recognised on device with its diacritics intact and copied to the clipboard.">
+              <span class="fcap">OCR</span>
+              <div class="screen-bar"><i></i><i></i><i></i></div>
+              <div class="dim dim-t"></div><div class="dim dim-b"></div>
+              <div class="dim dim-l"></div><div class="dim dim-r"></div>
+              <div class="size-pill">640 × 280 px</div>
+              <div class="sel">
+                <span class="handle h-tl"></span><span class="handle h-tc"></span><span class="handle h-tr"></span>
+                <span class="handle h-ml"></span><span class="handle h-mr"></span>
+                <span class="handle h-bl"></span><span class="handle h-bc"></span><span class="handle h-br"></span>
+              </div>
+              <p class="ocr-src" style="left:16%; top:31%; width:35%">
+                Khách hàng đã xác nhận<br />thiết kế cuối cùng.
+              </p>
+              <div class="ocr-out" style="right:5%; top:30%">
+                <span class="tag">Copied · on device</span>
+                Khách hàng đã xác nhận<br />thiết kế cuối cùng.
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div class="loupe">
-          <div class="grid"><span class="cell"></span></div>
-          <div class="read"><span class="swatch"></span>#2F6F8F<span style="opacity:.6">1284, 662</span></div>
-        </div>
-        <div class="toolbar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="on"><path d="M4 20l3-1 11-11-2-2L5 17z"/></svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 19L19 5"/></svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 18L18 6M12 6h6v6"/></svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="7" width="16" height="10" rx="1"/></svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="7"/></svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14M12 7v11"/></svg>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 16h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></svg>
-          <span class="sep"></span>
-          <span class="dot" style="background:#ff3b30"></span>
-          <span class="dot" style="background:#ffcc00"></span>
-          <span class="dot" style="background:#0a84ff"></span>
-          <span class="sep"></span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10H9"/></svg>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
+
+        <div class="cbar">
+          <div class="cdots">
+            <input class="vr" type="radio" name="view" id="v1" /><label for="v1" title="Selection"><span class="sr">Selection</span></label>
+            <input class="vr" type="radio" name="view" id="v2" /><label for="v2" title="Ruler"><span class="sr">Ruler</span></label>
+            <input class="vr" type="radio" name="view" id="v3" /><label for="v3" title="Magnifier"><span class="sr">Magnifier</span></label>
+            <input class="vr" type="radio" name="view" id="v4" /><label for="v4" title="Annotate"><span class="sr">Annotate</span></label>
+            <input class="vr" type="radio" name="view" id="v5" /><label for="v5" title="Pixelate"><span class="sr">Pixelate</span></label>
+            <input class="vr" type="radio" name="view" id="v6" /><label for="v6" title="OCR"><span class="sr">OCR</span></label>
+          </div>
+          <p class="chint">Hover to hold a view, or pick one.</p>
         </div>
       </div>
+
       <figcaption>
-        The overlay, drawn to scale: the dim, the eight handles, the size readout,
-        the loupe with its hex value, and the toolbar where it actually appears — just
-        under the selection.
+        Six views of the overlay, drawn to scale in CSS rather than captured — so they
+        stay crisp at any density and follow your theme. Colours, the 25-button toolbar
+        and every readout are taken from the app.
       </figcaption>
-      <div class="dimline">selection reported in CSS pixels</div>
+      <div class="dimline">every reading in CSS pixels</div>
     </figure>
   </header>
 
