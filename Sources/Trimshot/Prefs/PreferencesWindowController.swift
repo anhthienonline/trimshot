@@ -174,10 +174,12 @@ final class PreferencesWindowController: NSWindowController {
         blurb.maximumNumberOfLines = 4
         blurb.preferredMaxLayoutWidth = 400
 
+        // Points at the repository, not a website, until one is actually deployed. A link
+        // that 404s from inside the app is worse than one link fewer — see scripts/urls.env.
         let links = NSStackView(views: [
-            linkButton("trimshot.app", url: "https://trimshot.app"),
-            linkButton("Source", url: "https://github.com/hokhacthien91/trimshot"),
-            linkButton("Privacy", url: "https://trimshot.app/privacy"),
+            linkButton("Source", url: "https://github.com/anhthienonline/Trimshot"),
+            linkButton("Privacy", url: "https://github.com/anhthienonline/Trimshot/blob/main/PRIVACY.md"),
+            linkButton("Changelog", url: "https://github.com/anhthienonline/Trimshot/blob/main/CHANGELOG.md"),
         ])
         links.orientation = .horizontal
         links.spacing = 14

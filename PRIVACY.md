@@ -58,7 +58,7 @@ never uploaded to perform it.
 
 ## The website
 
-[trimshot.app](https://trimshot.app) is a single static page on Vercel. It sets no cookies and
+The promo site is a single static page on Vercel. It sets no cookies and
 loads no third-party scripts, fonts, or trackers — its Content-Security-Policy blocks outbound
 requests entirely. The host keeps standard server-side request logs that include IP addresses,
 as any web host does; see [Vercel's privacy policy](https://vercel.com/legal/privacy-policy).
@@ -67,7 +67,7 @@ Nothing beyond that is collected, and nothing is combined with anything else.
 ## Contact
 
 Questions or corrections: open an issue at
-<https://github.com/hokhacthien91/trimshot/issues>.
+<https://github.com/anhthienonline/Trimshot/issues>.
 
 ---
 

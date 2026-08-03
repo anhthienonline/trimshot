@@ -2,7 +2,7 @@
 #
 # This file is the source of truth; `scripts/release.sh` stamps the version and sha256 from
 # the disk image it just built, then tells you what to copy into the tap repository
-# (github.com/hokhacthien91/homebrew-trimshot, at Casks/trimshot.rb).
+# (github.com/anhthienonline/homebrew-Trimshot, at Casks/trimshot.rb).
 #
 # IMPORTANT, and the reason this is not the headline install method: Homebrew Cask
 # quarantines its downloads by default. `brew install --cask trimshot` therefore still hits
@@ -15,11 +15,11 @@ cask "trimshot" do
   version "0.1.0"
   sha256 "99dbc53ab5efaa9e4fe084433fdb6a1550f073256b6b6e4c0146ef935536a167"
 
-  url "https://github.com/hokhacthien91/trimshot/releases/download/v#{version}/Trimshot.dmg",
-      verified: "github.com/hokhacthien91/trimshot/"
+  url "https://github.com/anhthienonline/Trimshot/releases/download/v#{version}/Trimshot.dmg",
+      verified: "github.com/anhthienonline/Trimshot/"
   name "Trimshot"
   desc "Precision screen capture for design QA, reporting points and pixels together"
-  homepage "https://github.com/hokhacthien91/trimshot"
+  homepage "https://github.com/anhthienonline/Trimshot"
 
   # ScreenCaptureKit's SCScreenshotManager is macOS 14+.
   depends_on macos: ">= :sonoma"
