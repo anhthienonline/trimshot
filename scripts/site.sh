@@ -43,6 +43,21 @@ if [ "$STALE" -ne 0 ]; then
 fi
 echo "    index.html advertises ${SIZE_KB} KB in $(grep -c ">${SIZE_KB} KB<" "$SITE/index.html") place(s)"
 
+# The page quotes the number of automated checks in three places. It had already drifted to
+# contradicting itself — 112 in one table, 44 in another — so take it from the run rather than
+# from memory.
+CHECKS=$(swift run TrimshotChecks 2>/dev/null | grep -oE '^[0-9]+ passed' | grep -oE '^[0-9]+' || true)
+if [ -n "$CHECKS" ]; then
+    sed -i '' \
+        -e "s|there are [0-9][0-9]* automated checks|there are ${CHECKS} automated checks|" \
+        -e "s|<td>Automated checks</td><td class=\"mono\">[0-9][0-9]*</td>|<td>Automated checks</td><td class=\"mono\">${CHECKS}</td>|" \
+        -e "s|<td>Automated checks</td><td class=\"yes\">[0-9][0-9]*</td>|<td>Automated checks</td><td class=\"yes\">${CHECKS}</td>|" \
+        "$SITE/index.html"
+    echo "    index.html advertises ${CHECKS} automated checks"
+else
+    echo "    WARNING: could not read the check count" >&2
+fi
+
 case "${1:-}" in
     --preview)
         echo "==> vercel deploy (preview)"

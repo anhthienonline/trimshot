@@ -36,7 +36,7 @@ First public build.
   in the middle, held on screen after the drag.
 - **Hover** instead of dragging: the overlay detects the near-uniform run the cursor sits inside,
   the overlay detects the near-uniform run the cursor sits inside, horizontally and
-  vertically, and dimensions it in both units — the spacing between a button and its label
+  vertically, and dimensions it — the spacing between a button and its label
   without aiming at two edges by eye.
 - Edge detection walks a single extracted luminance line rather than sampling pixel by pixel,
   and ignores gradients and anti-aliasing below a 0.10 luminance threshold.

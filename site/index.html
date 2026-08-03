@@ -514,7 +514,7 @@
         the loupe with its hex value, and the toolbar where it actually appears — just
         under the selection.
       </figcaption>
-      <div class="dimline">selection reported in both units</div>
+      <div class="dimline">selection reported in CSS pixels</div>
     </figure>
   </header>
 
@@ -536,7 +536,7 @@
         whose numbers you can trust, so the accuracy is stated as a measurement rather
         than an adjective. Every crop is compared against macOS's own
         <code>screencapture</code> of the identical region; the difference is
-        <strong>0.01 of one 8-bit level</strong>, and there are 44 automated checks over
+        <strong>0.01 of one 8-bit level</strong>, and there are 112 automated checks over
         the coordinate maths behind it — negative-origin displays, mixed scale factors,
         and selections spanning two monitors included.
       </p>
@@ -578,15 +578,24 @@
           leaves you dividing.</p>
       </div>
       <div>
+        <h3>A ruler that reads edges</h3>
+        <p>
+          Hover and it reports the gap the cursor sits in, found from the frozen pixels rather
+          than from your aim. Drag and it dimensions the box — <span class="mono">W × H</span>
+          on each axis.
+        </p>
+      </div>
+      <div>
         <h3>Loupe and eyedropper</h3>
         <p>An 8× pixel grid follows the cursor with the hex value underneath. Press
           <span class="keys">C</span> to copy it. It reads the frozen bitmap, so the value
           is the value.</p>
       </div>
       <div>
-        <h3>Eight annotation tools</h3>
-        <p>Freehand, line, arrow, rectangle, ellipse, highlighter, text — and pixelate,
-          for covering a client's data before you paste.</p>
+        <h3>Nine annotation tools</h3>
+        <p>Freehand, line, arrow, rectangle, ellipse, highlighter, text, pixelate for covering
+          a client's data, and place-an-image — which arrives centred, then drags and resizes.
+          Six colours plus any colour you pick.</p>
       </div>
       <div>
         <h3>Vietnamese OCR</h3>
@@ -626,9 +635,12 @@
         <tbody>
           <tr><td class="keys">⌃G</td><td>Start a capture — rebindable in Settings</td></tr>
           <tr><td class="keys">drag</td><td>Select; drag a handle or the interior to adjust</td></tr>
-          <tr><td class="keys">← ↑ → ↓</td><td>Nudge 1 pt · with ⇧ 10 pt · with ⌥ resize</td></tr>
+          <tr><td class="keys">← ↑ → ↓</td><td>Nudge 1 px · with ⇧ 10 px · with ⌥ resize</td></tr>
           <tr><td class="keys">⌘A</td><td>Select the whole display</td></tr>
           <tr><td class="keys">C</td><td>Copy the hex colour under the cursor</td></tr>
+          <tr><td class="keys">M</td><td>Ruler — hover reads a gap, drag dimensions a box</td></tr>
+          <tr><td class="keys">⌘V</td><td>With the image tool armed, place the clipboard image</td></tr>
+          <tr><td class="keys">⌫</td><td>Remove the selected placed image</td></tr>
           <tr><td class="keys">⌘Z ⌘⇧Z</td><td>Undo, redo an annotation</td></tr>
           <tr><td class="keys">⌘C ⌘S</td><td>Copy the selection · save it</td></tr>
           <tr><td class="keys">esc</td><td>Cancel</td></tr>
@@ -697,7 +709,7 @@ brew install --cask trimshot</pre>
           <tr><td>Dependencies</td><td class="mono">none</td></tr>
           <tr><td>Network access</td><td class="mono">none — no networking code in the binary</td></tr>
           <tr><td>Permission</td><td class="mono">Screen Recording, once per machine</td></tr>
-          <tr><td>Automated checks</td><td class="mono">44</td></tr>
+          <tr><td>Automated checks</td><td class="mono">112</td></tr>
         </tbody>
       </table>
     </div>
