@@ -1,7 +1,7 @@
 # Privacy
 
-Trimshot collects nothing and sends nothing. This is short because there is very little to
-describe.
+The app collects nothing and sends nothing. The website that distributes it does measure its
+traffic, which is described under [The website](#the-website).
 
 ## No network access
 
@@ -12,7 +12,9 @@ grep -rE "URLSession|URLRequest|NWConnection|CFStream|socket\(" Sources/
 ```
 
 That returns nothing, and it is part of what the build is reviewed against. There is no
-account, no telemetry, no crash reporting, no update check, and no analytics.
+account, no telemetry, no crash reporting, no update check, and no analytics. This holds for
+the app only; the website that distributes it is described under
+[The website](#the-website).
 
 ## What the app can see
 
@@ -58,11 +60,22 @@ never uploaded to perform it.
 
 ## The website
 
-[trimshot.vercel.app](https://trimshot.vercel.app) is a single static page on Vercel. It sets no cookies and
-loads no third-party scripts, fonts, or trackers — its Content-Security-Policy blocks outbound
-requests entirely. The host keeps standard server-side request logs that include IP addresses,
-as any web host does; see [Vercel's privacy policy](https://vercel.com/legal/privacy-policy).
-Nothing beyond that is collected, and nothing is combined with anything else.
+[trimshot.vercel.app](https://trimshot.vercel.app) is a static page on Vercel, and unlike the
+app it does measure its traffic. It loads Google Tag Manager and Google Analytics, which set a
+`_ga` cookie and record page views, how far down the page you scroll, clicks on the download
+link and clicks through to GitHub, alongside coarse details such as country, browser and
+referring site. That is there to answer one question — whether anyone is finding Trimshot —
+and Google's handling of it falls under
+[Google's privacy policy](https://policies.google.com/privacy). No advertising or remarketing
+tags are loaded.
+
+The host, Vercel, keeps standard server-side request logs that include IP addresses, as any web
+host does; see [Vercel's privacy policy](https://vercel.com/legal/privacy-policy). Nothing
+beyond this is collected. None of it reaches the app, which still sends nothing at all, and
+none of it is combined with anything else.
+
+To opt out, block the scripts with your browser's tracking protection or a content blocker, or
+install Google's [opt-out add-on](https://tools.google.com/dlpage/gaoptout).
 
 ## Contact
 
@@ -71,4 +84,4 @@ Questions or corrections: open an issue at
 
 ---
 
-*Last updated: 2 August 2026.*
+*Last updated: 3 August 2026.*

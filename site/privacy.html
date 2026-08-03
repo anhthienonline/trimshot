@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-PW89PNW8');</script>
+<!-- End Google Tag Manager -->
+
 <title>Privacy — Trimshot</title>
 <meta name="description" content="Trimshot collects nothing and sends nothing. There is no networking code in the app." />
 <meta name="theme-color" content="#0e6b78" media="(prefers-color-scheme: light)" />
@@ -75,6 +84,11 @@
 </head>
 <body>
 
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PW89PNW8"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <g id="mark" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="miter">
     <path d="M22 40V22h18" /><path d="M60 22h18v18" />
@@ -95,8 +109,8 @@
 
   <h1>Privacy</h1>
   <p class="lede">
-    Trimshot collects nothing and sends nothing. This page is short because there is very
-    little to describe.
+    The app collects nothing and sends nothing. This website counts visits. That is the
+    whole of it, and this page is short because there is very little else to describe.
   </p>
   <hr class="rule" />
 
@@ -109,7 +123,8 @@
   <p>
     That returns nothing, and continuous integration fails the build if it ever stops
     returning nothing. There is no account, no telemetry, no crash reporting, no update
-    check, and no analytics.
+    check, and no analytics. This holds for the app only; the website that distributes it
+    is described under <a href="#website">This website</a>.
   </p>
 
   <h2>What the app can see</h2>
@@ -151,13 +166,27 @@
     to perform it.
   </p>
 
-  <h2>This website</h2>
+  <h2 id="website">This website</h2>
   <p>
-    A static page on Vercel. It sets no cookies and loads no third-party scripts, fonts or
-    trackers — its Content-Security-Policy blocks outbound requests entirely. The host, Vercel, keeps
-    standard server-side request logs that include IP addresses, as any web host does — see
+    A static page on Vercel, and unlike the app it does measure its traffic. It loads Google
+    Tag Manager and Google Analytics, which set a <code>_ga</code> cookie and record page
+    views, how far down the page you scroll, clicks on the download link and clicks through
+    to GitHub, alongside coarse details such as country, browser and referring site. That is
+    there to answer one question — whether anyone is finding Trimshot — and Google's handling
+    of it falls under <a href="https://policies.google.com/privacy">Google's privacy
+    policy</a>. No advertising or remarketing tags are loaded.
+  </p>
+  <p>
+    The host, Vercel, keeps standard server-side request logs that include IP addresses, as
+    any web host does — see
     <a href="https://vercel.com/legal/privacy-policy">Vercel's privacy policy</a>. Nothing
-    beyond that is collected, and nothing is combined with anything else.
+    beyond this is collected. None of it reaches the app, which still sends nothing at all,
+    and none of it is combined with anything else.
+  </p>
+  <p>
+    To opt out, block the scripts with your browser's tracking protection or a content
+    blocker, or install Google's
+    <a href="https://tools.google.com/dlpage/gaoptout">opt-out add-on</a>.
   </p>
 
   <h2>Questions</h2>
@@ -166,7 +195,7 @@
     <a href="https://github.com/anhthienonline/trimshot/issues">github.com/anhthienonline/trimshot/issues</a>.
   </p>
 
-  <p class="updated">Last updated 2 August 2026</p>
+  <p class="updated">Last updated 3 August 2026</p>
 </div>
 </body>
 </html>
