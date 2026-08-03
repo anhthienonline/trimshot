@@ -13,6 +13,10 @@ concurrency:
 jobs:
   build:
     name: Build and check
+    # Deliberately not macos-latest. The point of CI here is to build against an *older* SDK
+    # than the development machine: the first failure it caught was code that compiled only on
+    # the macOS 26 SDK while the bundle claims a macOS 14 minimum. A runner that tracks the
+    # newest SDK would have agreed with the laptop and caught nothing.
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4

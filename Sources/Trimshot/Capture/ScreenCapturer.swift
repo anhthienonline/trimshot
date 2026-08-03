@@ -1,5 +1,10 @@
 import AppKit
-import ScreenCaptureKit
+// @preconcurrency because SCShareableContent is not Sendable in the macOS 15 SDK, and this
+// file is @MainActor — so awaiting it there is an error when building against that SDK, while
+// the macOS 26 SDK annotates it and compiles clean. Without this the project only builds on
+// the newer SDK, which would quietly contradict its own macOS 14 minimum. CI on a macOS 15
+// runner is what surfaced it.
+@preconcurrency import ScreenCaptureKit
 import TrimshotCore
 
 enum CaptureError: LocalizedError {
