@@ -7,6 +7,8 @@ runs OCR in Vietnamese.
 
 Native Swift + AppKit + ScreenCaptureKit. No cloud upload: captures stay on your machine.
 
+**[trimshot.vercel.app](https://trimshot.vercel.app)** — download and the full description.
+
 Identity and voice live in [brand/BRAND.md](brand/BRAND.md); [brand/index.html](brand/index.html)
 is a shareable intro page that doubles as the identity reference. [site/](site/) is the
 public promo page — see "Promo site" below.

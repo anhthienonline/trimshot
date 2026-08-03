@@ -58,7 +58,7 @@ never uploaded to perform it.
 
 ## The website
 
-The promo site is a single static page on Vercel. It sets no cookies and
+[trimshot.vercel.app](https://trimshot.vercel.app) is a single static page on Vercel. It sets no cookies and
 loads no third-party scripts, fonts, or trackers — its Content-Security-Policy blocks outbound
 requests entirely. The host keeps standard server-side request logs that include IP addresses,
 as any web host does; see [Vercel's privacy policy](https://vercel.com/legal/privacy-policy).

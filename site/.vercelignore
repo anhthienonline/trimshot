@@ -1,0 +1,6 @@
+# Vercel falls back to .gitignore when this file is absent, and site/.gitignore lists
+# Trimshot.dmg — the exact file the download button points at. Without this the deployment
+# would ship a page whose only call to action 404s.
+#
+# So this excludes just the CLI's own state directory, and nothing else.
+.vercel
