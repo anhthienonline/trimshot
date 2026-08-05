@@ -7,7 +7,7 @@
 #
 # Outputs, all cropped to the same region so they can be flipped between:
 #   chrome-raw.png         the capture with no chrome, as a baseline for the dim
-#   chrome-dragging.png    mid-drag: crosshair, magnifier, size label
+#   chrome-dragging.png    mid-drag: crosshair, size label
 #   chrome-settled.png     after the drag: resize handles
 #   chrome-annotated.png   one of every annotation tool
 #   export-annotated.png   the same selection as it would be saved

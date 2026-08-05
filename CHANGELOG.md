@@ -24,11 +24,6 @@ First public build.
   displays.
 - `⌘A` selects the whole display.
 
-### Measuring
-
-- Magnifier with an 8× pixel grid, following the cursor, reading the frozen bitmap.
-- Eyedropper with hex readout; `C` copies it.
-
 ### Ruler
 
 - `M`, or the ruler button on the toolbar, enters ruler mode.

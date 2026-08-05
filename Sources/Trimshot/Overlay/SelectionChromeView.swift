@@ -3,14 +3,13 @@ import TrimshotCore
 
 /// Everything drawn *on top of* the frozen screenshot: the dim, the hole punched for the
 /// selection, its border and handles, the size readout, the crosshair guides and the
-/// magnifier.
+/// measurement dimension lines.
 ///
 /// Transparent to the mouse — `hitTest` returns nil so `OverlayRootView` keeps receiving
 /// every event.
 final class SelectionChromeView: NSView {
 
     private let shot: DisplayShot
-    private let magnifier: Magnifier
 
     /// AppKit global points, shared by every display's chrome view.
     var selection: CGRect? {
@@ -32,8 +31,7 @@ final class SelectionChromeView: NSView {
         }
     }
 
-    /// True once the drag has finished: handles appear and the magnifier steps aside so
-    /// it cannot cover the selection or the annotation toolbar.
+    /// True once the drag has finished, which is when the resize handles appear.
     var isSettled = false {
         didSet { if isSettled != oldValue { needsDisplay = true } }
     }
@@ -64,14 +62,13 @@ final class SelectionChromeView: NSView {
         didSet { if ruler != oldValue { needsDisplay = true } }
     }
 
-    /// Measure mode: report the gap the cursor sits in instead of showing the loupe.
+    /// Measure mode: report the gap the cursor sits in.
     var isMeasuring = false {
         didSet { if isMeasuring != oldValue { needsDisplay = true } }
     }
 
     init(shot: DisplayShot) {
         self.shot = shot
-        self.magnifier = Magnifier(shot: shot)
         super.init(frame: CGRect(origin: .zero, size: shot.geometry.frame.size))
     }
 
@@ -152,10 +149,6 @@ final class SelectionChromeView: NSView {
             } else {
                 drawMeasurement()
             }
-        } else if !isSettled, pointerIsOnThisDisplay, let pointer {
-            // One or the other: the loupe and the dimension lines both want the area around
-            // the cursor, and together they are unreadable.
-            magnifier.draw(globalPoint: pointer, viewPoint: toLocal(pointer), in: bounds)
         }
     }
 
@@ -427,7 +420,7 @@ final class SelectionChromeView: NSView {
 
         let text = isMeasuring
             ? "Measuring — point at a gap  ·  M returns to selecting  ·  esc cancels"
-            : "Drag to select  ·  ⌘A whole screen  ·  C copies the colour  ·  M measures  ·  esc cancels"
+            : "Drag to select  ·  ⌘A whole screen  ·  M measures  ·  esc cancels"
         let size = measure(text, font: Style.hintFont)
         let padding = CGSize(width: 14, height: 9)
         let boxSize = CGSize(

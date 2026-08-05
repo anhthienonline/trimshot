@@ -4,7 +4,7 @@ import TrimshotCore
 /// `Trimshot --render-chrome <outputDir>`
 ///
 /// Renders the overlay's chrome — dim, selection border, handles, size label, crosshair,
-/// magnifier — into PNGs against a real screen capture, without ever showing a window.
+/// dimension lines — into PNGs against a real screen capture, without ever showing a window.
 ///
 /// This exists so the selection UI can be inspected and iterated on directly, instead of
 /// having to trigger the hotkey and screenshot the result by hand every time a colour or
@@ -54,11 +54,11 @@ enum ChromePreview {
             width: 420,
             height: 240
         )
-        // Just inside the selection's top-left, so the magnifier and the size label are
+        // Just inside the selection's top-left, so the crosshair and the size label are
         // both in frame and can be checked for overlap.
         let pointer = CGPoint(x: selection.minX + 70, y: selection.maxY - 40)
 
-        // A window big enough to hold the selection, its label and the loupe.
+        // A window big enough to hold the selection, its label and the dimension lines.
         let inspectRegion = selection.insetBy(dx: -230, dy: -170)
 
         // The same region with no chrome at all, as a baseline for judging the dim and

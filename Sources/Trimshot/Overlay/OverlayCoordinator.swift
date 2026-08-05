@@ -217,11 +217,6 @@ final class OverlayCoordinator: NSObject {
         setSettled(true)
     }
 
-    /// Feedback for the copy-colour shortcut, which does not end the session.
-    func flashColorCopied(_ hex: String) {
-        HUD.show("Copied  \(hex)", duration: .milliseconds(900))
-    }
-
     // MARK: - Annotations
 
     func setDraft(_ annotation: Annotation?) {

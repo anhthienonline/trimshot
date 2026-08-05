@@ -336,30 +336,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     font-variant-numeric: tabular-nums; white-space: nowrap;
   }
 
-  /* The loupe: a real pixel grid, nearest-neighbour in spirit. */
-  .loupe {
-    position: absolute; right: 5%; top: 33%; width: 132px;
-    background: rgba(8, 14, 17, 0.9); border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 8px; overflow: hidden;
-  }
-  .loupe .grid {
-    height: 88px;
-    background:
-      repeating-linear-gradient(to right, rgba(255,255,255,0.10) 0 1px, transparent 1px 8.8px),
-      repeating-linear-gradient(to bottom, rgba(255,255,255,0.10) 0 1px, transparent 1px 8.8px),
-      linear-gradient(135deg, #7fd6c4 0 42%, #2f6f8f 42% 58%, #1d3f52 58%);
-  }
-  .loupe .cell {
-    position: absolute; left: calc(50% - 5px); top: calc(44px - 5px);
-    width: 10px; height: 10px; outline: 1px solid #fff; box-shadow: 0 0 0 1px #000;
-  }
-  .loupe .read {
-    display: flex; align-items: center; gap: 6px; padding: 6px 8px;
-    font-family: var(--mono); font-size: 0.625rem; color: #fff;
-  }
-  .loupe .swatch { width: 11px; height: 11px; border-radius: 2px; background: #2f6f8f;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35); }
-
   /* The annotation toolbar. */
   .toolbar {
     /* Parked just under the selection, which is where the real toolbar appears. */
@@ -379,7 +355,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
 
   /* ---- Slideshow --------------------------------------------------------
-     Six views of the overlay, cross-faded. Everything inside a frame is
+     Five views of the overlay, cross-faded. Everything inside a frame is
      sized in `cqw` — 1% of the frame's own width — so one set of values
      scales from a phone to a wide desktop without a media query, and stays
      vector-crisp at any density. `.screen` is the query container.        */
@@ -397,18 +373,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     position: absolute; inset: 0; opacity: 0;
     /* Illustrations, not controls — nothing inside is clickable. */
     pointer-events: none;
-    animation: framecycle 27s linear infinite;
+    animation: framecycle 22.5s linear infinite;
     animation-delay: calc(var(--i) * 4.5s);
   }
   .frame > .screen { position: absolute; inset: 0; container-type: inline-size; }
 
-  /* Six views, 27s round trip: each holds a sixth of the cycle (4.5s), of
-     which 0.6s at each end is the cross-fade. */
+  /* Five views, 22.5s round trip: each holds a fifth of the cycle (4.5s), of
+     which 0.6s at each end is the cross-fade — 0.6/22.5 is 2.67%. */
   @keyframes framecycle {
     0%      { opacity: 0 }
-    2.22%   { opacity: 1 }
-    16.67%  { opacity: 1 }
-    18.89%  { opacity: 0 }
+    2.67%   { opacity: 1 }
+    20%     { opacity: 1 }
+    22.67%  { opacity: 0 }
     100%    { opacity: 0 }
   }
 
@@ -421,7 +397,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .carousel:has(.vr:checked) .frame { animation: none; opacity: 0; }
   .carousel:has(#v1:checked) .f1, .carousel:has(#v2:checked) .f2,
   .carousel:has(#v3:checked) .f3, .carousel:has(#v4:checked) .f4,
-  .carousel:has(#v5:checked) .f5, .carousel:has(#v6:checked) .f6 { opacity: 1; }
+  .carousel:has(#v5:checked) .f5 { opacity: 1; }
 
   /* Frame caption: names the feature on screen, top-right, out of the way of
      the selection which always sits left-of-centre. */
@@ -442,11 +418,38 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .vr { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
   .cdots label {
     display: block; width: 1.75rem; height: 0.375rem; border-radius: 99px;
-    background: var(--hairline); cursor: pointer; transition: background 0.2s;
+    background: var(--hairline); cursor: pointer;
+    /* The dots carry the same 22.5s cycle as the frames, offset by the same `--i`, so one
+       dot is lit for exactly the window its frame is on screen. Without this nothing marks
+       the current view while the slideshow is rotating: `:checked` only ever applies after
+       someone has picked a view by hand, and there is no script to move a class. */
+    animation: dotcycle 22.5s linear infinite;
+    animation-delay: calc(var(--i) * 4.5s);
   }
-  .cdots label:hover { background: var(--muted); }
-  .vr:checked + label { background: var(--petrol); }
+  @keyframes dotcycle {
+    0%      { background: var(--petrol) }
+    20%     { background: var(--petrol) }
+    20.01%  { background: var(--hairline) }
+    100%    { background: var(--hairline) }
+  }
+  /* An animated background beats a hover rule, so hover is shown by height instead —
+     otherwise the dots would stop responding to the pointer. */
+  .cdots label:hover { transform: scaleY(1.8); }
+  .cdots label { transition: transform 0.15s ease; }
+
+  .carousel:hover .cdots label,
+  .carousel:focus-within .cdots label { animation-play-state: paused; }
+
+  /* Once a view is picked the cycle stops, and the chosen dot alone stays lit. */
+  .carousel:has(.vr:checked) .cdots label { animation: none; background: var(--hairline); }
+  .carousel:has(.vr:checked) .vr:checked + label { background: var(--petrol); }
   .vr:focus-visible + label { outline: 2px solid var(--petrol); outline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* No rotation, so the first dot is the one that is showing. */
+    .cdots label { animation: none; }
+    .cdots label:first-of-type { background: var(--petrol); }
+  }
   .chint { font-size: 0.8125rem; color: var(--muted); margin-left: auto; }
   /* Names each dot for a screen reader without showing the text. `title` alone
      is not reliably announced. */
@@ -473,32 +476,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* The selection border stays above the stand-in page elements. */
   .frame .sel { z-index: 2; }
-
-  .frame .loupe { width: 15cqw; border-radius: 1cqw; border-width: 0.1cqw; }
-  /* One cell per source pixel at 8×, so the grid pitch scales with the frame
-     instead of being pinned to 8.8px. */
-  .frame .loupe .grid {
-    position: relative; height: 10cqw; --cell: 1.15cqw;
-    background:
-      repeating-linear-gradient(to right,
-        rgba(255, 255, 255, 0.10) 0 0.1cqw, transparent 0.1cqw var(--cell)),
-      repeating-linear-gradient(to bottom,
-        rgba(255, 255, 255, 0.10) 0 0.1cqw, transparent 0.1cqw var(--cell)),
-      linear-gradient(135deg, #7fd6c4 0 42%, #2f6f8f 42% 58%, #1d3f52 58%);
-  }
-  .frame .loupe .cell {
-    left: calc(50% - var(--cell) / 2); top: calc(50% - var(--cell) / 2);
-    width: var(--cell); height: var(--cell);
-    outline-width: 0.11cqw;
-  }
-  .frame .loupe .read { font-size: 1.15cqw; gap: 0.6em; padding: 0.55em 0.7em; }
-  .frame .loupe .swatch { width: 1.2cqw; height: 1.2cqw; }
-
-  /* Frame 3 is about the loupe, so it gets a bigger one. */
-  .f3 .loupe { width: 30cqw; right: 8%; top: 20%; border-radius: 1.4cqw; }
-  .f3 .loupe .grid { height: 21cqw; --cell: 2.3cqw; }
-  .f3 .loupe .read { font-size: 2cqw; }
-  .f3 .loupe .swatch { width: 2.1cqw; height: 2.1cqw; }
 
   .frame .toolbar {
     gap: 0.78cqw; padding: 0.7cqw 1cqw; border-radius: 1cqw;
@@ -748,11 +725,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <a class="navlink" href="#shortcuts">Shortcuts</a>
       <a class="navlink" href="#install">Install</a>
       <a class="navlink" href="#contact">Contact</a>
-      <a class="navlink" href="https://github.com/anhthienonline/trimshot">Source</a>
+      <a class="navlink" target="_blank" rel="noopener" href="https://github.com/anhthienonline/trimshot">Source</a>
     </div>
     <!-- Deliberately outside .navlinks: Download is the point of the page, so it stays on the
          bar at every width instead of hiding behind the menu. -->
-    <a class="btn btn-primary navcta" href="Trimshot.dmg" download data-cta="nav">Download<small>802 KB</small></a>
+    <a class="btn btn-primary navcta" href="Trimshot.dmg" download data-cta="nav">Download<small>552 KB</small></a>
   </nav>
 
   <header>
@@ -775,7 +752,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
       <div class="tb-cell">
         <span class="k">Size</span>
-        <span class="v mono">802 KB</span>
+        <span class="v mono">552 KB</span>
       </div>
       <div class="tb-cell">
         <span class="k">Sends data</span>
@@ -799,9 +776,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </p>
 
     <div class="cta">
-      <a class="btn btn-primary" href="Trimshot.dmg" download data-cta="hero">Download for macOS<small>802 KB</small></a>
+      <a class="btn btn-primary" href="Trimshot.dmg" download data-cta="hero">Download for macOS<small>552 KB</small></a>
       <a class="btn btn-ghost" href="#install">Read the install note first</a>
-      <a class="btn btn-ghost" href="https://github.com/anhthienonline/trimshot">View source</a>
+      <a class="btn btn-ghost" target="_blank" rel="noopener" href="https://github.com/anhthienonline/trimshot">View source</a>
     </div>
 
     <figure class="shot">
@@ -836,7 +813,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                frames because they are all derived, not invented per frame. -->
           <div class="frame f1" style="--i:0">
             <div class="screen" style="--sx:16%; --sy:28%; --sw:32.8125%; --sh:30%" role="img"
-              aria-label="The overlay: the screen dimmed, a selection with eight handles reading 420 by 240 pixels, the loupe with a hex value, and the full toolbar beneath.">
+              aria-label="The overlay: the screen dimmed, a selection with eight handles reading 420 by 240 pixels, and the full toolbar beneath.">
               <span class="fcap">Selection</span>
               <div class="screen-bar"><i></i><i></i><i></i></div>
               <div class="dim dim-t"></div><div class="dim dim-b"></div>
@@ -846,10 +823,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <span class="handle h-tl"></span><span class="handle h-tc"></span><span class="handle h-tr"></span>
                 <span class="handle h-ml"></span><span class="handle h-mr"></span>
                 <span class="handle h-bl"></span><span class="handle h-bc"></span><span class="handle h-br"></span>
-              </div>
-              <div class="loupe">
-                <div class="grid"><span class="cell"></span></div>
-                <div class="read"><span class="swatch"></span>#2F6F8F<span style="opacity:.6">1284, 662</span></div>
               </div>
               <div class="toolbar">
                 <svg viewBox="0 0 24 24"><use href="#t-pen"/></svg>
@@ -906,30 +879,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </div>
           </div>
 
-          <!-- 3. The loupe -->
+          <!-- 3. Annotation -->
           <div class="frame f3" style="--i:2">
-            <div class="screen" style="--sx:19%; --sy:29%; --sw:30%; --sh:30%" role="img"
-              aria-label="The magnifier enlarged: an eight-times pixel grid with the centre pixel outlined, its hex value 2F6F8F and its coordinates.">
-              <span class="fcap">Magnifier</span>
-              <div class="screen-bar"><i></i><i></i><i></i></div>
-              <div class="dim dim-t"></div><div class="dim dim-b"></div>
-              <div class="dim dim-l"></div><div class="dim dim-r"></div>
-              <div class="size-pill">384 × 240 px</div>
-              <div class="sel">
-                <span class="handle h-tl"></span><span class="handle h-tc"></span><span class="handle h-tr"></span>
-                <span class="handle h-ml"></span><span class="handle h-mr"></span>
-                <span class="handle h-bl"></span><span class="handle h-bc"></span><span class="handle h-br"></span>
-              </div>
-              <div class="loupe">
-                <div class="grid"><span class="cell"></span></div>
-                <div class="read"><span class="swatch"></span>#2F6F8F<span style="opacity:.6">1284, 662</span></div>
-              </div>
-              <span class="hint" style="left:20%; top:64%"><kbd>C</kbd>copies the hex</span>
-            </div>
-          </div>
-
-          <!-- 4. Annotation -->
-          <div class="frame f4" style="--i:3">
             <div class="screen" style="--sx:14%; --sy:24%; --sw:50%; --sh:45%" role="img"
               aria-label="Annotation: a red rectangle and arrow marking an element, a text note, and the mark being edited framed in teal.">
               <span class="fcap">Annotate</span>
@@ -980,8 +931,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </div>
           </div>
 
-          <!-- 5. Pixelate -->
-          <div class="frame f5" style="--i:4">
+          <!-- 4. Pixelate -->
+          <div class="frame f4" style="--i:3">
             <div class="screen" style="--sx:15%; --sy:26%; --sw:56.25%; --sh:40%" role="img"
               aria-label="Pixelate: one row of the capture replaced by coarse blocks, hiding it before the screenshot leaves the machine.">
               <span class="fcap">Pixelate</span>
@@ -999,8 +950,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             </div>
           </div>
 
-          <!-- 6. OCR -->
-          <div class="frame f6" style="--i:5">
+          <!-- 5. OCR -->
+          <div class="frame f5" style="--i:4">
             <div class="screen" style="--sx:12%; --sy:26%; --sw:50%; --sh:35%" role="img"
               aria-label="Text recognition: text inside the selection recognised on device and copied to the clipboard.">
               <span class="fcap">OCR</span>
@@ -1027,19 +978,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <div class="cbar">
           <div class="cdots">
-            <input class="vr" type="radio" name="view" id="v1" /><label for="v1" title="Selection"><span class="sr">Selection</span></label>
-            <input class="vr" type="radio" name="view" id="v2" /><label for="v2" title="Ruler"><span class="sr">Ruler</span></label>
-            <input class="vr" type="radio" name="view" id="v3" /><label for="v3" title="Magnifier"><span class="sr">Magnifier</span></label>
-            <input class="vr" type="radio" name="view" id="v4" /><label for="v4" title="Annotate"><span class="sr">Annotate</span></label>
-            <input class="vr" type="radio" name="view" id="v5" /><label for="v5" title="Pixelate"><span class="sr">Pixelate</span></label>
-            <input class="vr" type="radio" name="view" id="v6" /><label for="v6" title="OCR"><span class="sr">OCR</span></label>
+            <input class="vr" type="radio" name="view" id="v1" /><label for="v1" style="--i:0" title="Selection"><span class="sr">Selection</span></label>
+            <input class="vr" type="radio" name="view" id="v2" /><label for="v2" style="--i:1" title="Ruler"><span class="sr">Ruler</span></label>
+            <input class="vr" type="radio" name="view" id="v3" /><label for="v3" style="--i:2" title="Annotate"><span class="sr">Annotate</span></label>
+            <input class="vr" type="radio" name="view" id="v4" /><label for="v4" style="--i:3" title="Pixelate"><span class="sr">Pixelate</span></label>
+            <input class="vr" type="radio" name="view" id="v5" /><label for="v5" style="--i:4" title="OCR"><span class="sr">OCR</span></label>
           </div>
           <p class="chint">Hover to hold a view, or pick one.</p>
         </div>
       </div>
 
       <figcaption>
-        Six views of the overlay, drawn to scale in CSS rather than captured — so they
+        Five views of the overlay, drawn to scale in CSS rather than captured — so they
         stay crisp at any density and follow your theme. Colours, the 25-button toolbar
         and every readout are taken from the app.
       </figcaption>
@@ -1080,14 +1030,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <tr><td>Reading unit</td><td class="yes">CSS px — the unit your design uses</td></tr>
           <tr><td>Accuracy against Apple's own capture</td><td class="yes">0.01 / 255, measured</td></tr>
           <tr><td>Screen frozen before selecting</td><td class="yes">every display</td></tr>
-          <tr><td>Colour picked from</td><td class="yes">the frozen frame, not a moving one</td></tr>
           <tr><td>Automated checks</td><td class="yes">112</td></tr>
           <tr><td>Scrolling capture</td><td class="no">no</td></tr>
           <tr><td>Screen recording, GIF</td><td class="no">no</td></tr>
           <tr><td>Audio</td><td class="no">never — no audio is captured</td></tr>
           <tr><td>Cloud upload</td><td class="no">no — and no network code at all</td></tr>
           <tr><td>OCR languages</td><td class="no">2 — Vietnamese, English</td></tr>
-          <tr><td>Download size</td><td class="yes">802 KB</td></tr>
+          <tr><td>Download size</td><td class="yes">552 KB</td></tr>
         </tbody>
       </table>
     </div>
@@ -1113,12 +1062,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           than from your aim. Drag and it dimensions the box — <span class="mono">W × H</span>
           on each axis.
         </p>
-      </div>
-      <div>
-        <h3>Loupe and eyedropper</h3>
-        <p>An 8× pixel grid follows the cursor with the hex value underneath. Press
-          <span class="keys">C</span> to copy it. It reads the frozen bitmap, so the value
-          is the value.</p>
       </div>
       <div>
         <h3>Nine annotation tools</h3>
@@ -1169,7 +1112,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <tr><td class="keys">drag</td><td>Select; drag a handle or the interior to adjust</td></tr>
           <tr><td class="keys">← ↑ → ↓</td><td>Nudge 1 px · with ⇧ 10 px · with ⌥ resize</td></tr>
           <tr><td class="keys">⌘A</td><td>Select the whole display</td></tr>
-          <tr><td class="keys">C</td><td>Copy the hex colour under the cursor</td></tr>
           <tr><td class="keys">M</td><td>Ruler — hover reads a gap, drag dimensions a box</td></tr>
           <tr><td class="keys">⌘V</td><td>With the image tool armed, place the clipboard image</td></tr>
           <tr><td class="keys">⌫</td><td>Remove the selected placed image</td></tr>
@@ -1236,7 +1178,7 @@ brew install --cask trimshot</pre>
         <tbody>
           <tr><td>Requires</td><td class="mono">macOS 14 or later</td></tr>
           <tr><td>Architecture</td><td class="mono">Apple Silicon · universal build on request</td></tr>
-          <tr><td>Download</td><td class="mono">802 KB</td></tr>
+          <tr><td>Download</td><td class="mono">552 KB</td></tr>
           <tr><td>Built with</td><td class="mono">Swift 6 · AppKit · ScreenCaptureKit · Vision</td></tr>
           <tr><td>Dependencies</td><td class="mono">none</td></tr>
           <tr><td>Network access</td><td class="mono">none — no networking code in the binary</td></tr>
@@ -1261,9 +1203,9 @@ brew install --cask trimshot</pre>
       </p>
       <p>
         Bugs and feature requests belong in
-        <a href="https://github.com/anhthienonline/trimshot/issues">the issue tracker</a>,
+        <a target="_blank" rel="noopener" href="https://github.com/anhthienonline/trimshot/issues">the issue tracker</a>,
         where the answer is useful to whoever asks next. Anything else, including work:
-        <a href="https://github.com/anhthienonline">github.com/anhthienonline</a>.
+        <a target="_blank" rel="noopener" href="https://github.com/anhthienonline">github.com/anhthienonline</a>.
       </p>
     </div>
   </section>
@@ -1277,15 +1219,15 @@ brew install --cask trimshot</pre>
     <p>
       A macOS capture tool for design QA. <em>Trim</em> is the prepress term for cutting a
       sheet to its exact finished size — which is what a crop is. Built by
-      <a href="https://github.com/anhthienonline">Thien Ho</a>.
+      <a target="_blank" rel="noopener" href="https://github.com/anhthienonline">Thien Ho</a>.
     </p>
     <div class="links">
       <a href="Trimshot.dmg" download data-cta="footer">Download</a>
-      <a href="https://github.com/anhthienonline/trimshot">Source</a>
+      <a target="_blank" rel="noopener" href="https://github.com/anhthienonline/trimshot">Source</a>
       <a href="/privacy">Privacy</a>
-      <a href="https://github.com/anhthienonline/trimshot/blob/main/LICENSE">MIT licence</a>
-      <a href="https://github.com/anhthienonline/trimshot/blob/main/CHANGELOG.md">Changelog</a>
-      <a href="https://github.com/anhthienonline">Thien Ho</a>
+      <a target="_blank" rel="noopener" href="https://github.com/anhthienonline/trimshot/blob/main/LICENSE">MIT licence</a>
+      <a target="_blank" rel="noopener" href="https://github.com/anhthienonline/trimshot/blob/main/CHANGELOG.md">Changelog</a>
+      <a target="_blank" rel="noopener" href="https://github.com/anhthienonline">Thien Ho</a>
     </div>
   </footer>
 

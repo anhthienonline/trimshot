@@ -44,7 +44,7 @@ final class ToolbarWindow: NSPanel {
         becomesKeyOnlyIfNeeded = true
         sharingType = .none
         // The hover tips depend on mouseMoved reaching the bar, and this defaults to false —
-        // the same omission that froze the magnifier for a whole session.
+        // the same omission that froze the measure tool for a whole session.
         acceptsMouseMovedEvents = true
 
         // Order matters, and getting it wrong hides the toolbar completely: setting

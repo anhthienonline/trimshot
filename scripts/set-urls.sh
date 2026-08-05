@@ -61,6 +61,11 @@ if [ "$OLD_OWNER/$OLD_REPO" != "$NEW_OWNER/$NEW_REPO" ]; then
     # above does not reach it, which is exactly what the stale check caught the first time.
     rewrite "$OLD_OWNER/homebrew-$OLD_REPO" "$NEW_OWNER/homebrew-$NEW_REPO"
     rewrite "homebrew-$OLD_REPO" "homebrew-$NEW_REPO"
+    # The author's profile link carries the owner with no repository after it — in the Settings
+    # window, the site's Contact section and its footer. Every pattern above needs a repo name
+    # to match, so this has to come last: by now the owner/repo paths are already rewritten,
+    # which means whatever still says `github.com/<old owner>` is a bare profile URL.
+    rewrite "github.com/$OLD_OWNER" "github.com/$NEW_OWNER"
     echo "    $OLD_OWNER/$OLD_REPO → $NEW_OWNER/$NEW_REPO"
 else
     echo "    unchanged ($NEW_OWNER/$NEW_REPO)"

@@ -71,7 +71,6 @@ launch.
 | drag a handle / the interior | resize / move a settled selection |
 | arrows, `⇧`+arrows, `⌥`+arrows | nudge by 1 pt, 10 pt, resize by 1 pt |
 | `⌘A` | select the whole display |
-| `C` | copy the HEX colour under the cursor |
 | `M` or the ruler button | ruler mode — hover reads the gap under the cursor, drag measures A→B |
 | `⌘Z` / `⌘⇧Z` | undo / redo an annotation |
 | `⌘C` / `return` | copy the selection |
@@ -92,9 +91,8 @@ dashed teal frame and handles — drag it to move, drag a handle to resize, `⌫
 Only the tools that fill a rect are pickable this way; a line or a freehand stroke would need
 distance-to-stroke hit testing, so those are not pickable rather than pickable and wrong.
 
-The magnifier follows the cursor while selecting: an 8× pixel grid with the HEX value and
-pixel coordinate under the crosshair. The size readout is in CSS pixels, so a 420 px
-Figma frame reads 420 — not the 840 device pixels macOS's own screenshot tool would report.
+The size readout is in CSS pixels, so a 420 px Figma frame reads 420 — not the 840 device
+pixels macOS's own screenshot tool would report.
 
 All measurements are **CSS pixels**, never device pixels. AppKit points already are CSS
 pixels, so the discipline is in never multiplying by the scale factor; everything routes
@@ -338,8 +336,8 @@ scripts/                    bundling and signing
 The hotkey grabs a full-resolution still of every display *before* anything is drawn, and
 the overlay is painted on top of that frozen bitmap. A live transparent overlay would
 drift — video keeps playing, menus close, the cursor moves — so the pixels you finally
-crop would not be the pixels you selected. Freezing also makes the magnifier and the
-colour picker exact, because they read the same bitmap that gets cropped.
+crop would not be the pixels you selected. Freezing also makes the measure tool exact,
+because it reads the same bitmap that gets cropped.
 
 ### Coordinate systems
 

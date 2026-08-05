@@ -109,8 +109,7 @@ final class PreferencesWindowController: NSWindowController {
         let hint = NSTextField(
             labelWithString: """
                 In the overlay: drag to select, ⌘A for the whole screen, M for the ruler, \
-                C copies the colour under the cursor, ⌘Z undoes a mark, ⌘C copies, ⌘S saves, \
-                esc cancels.
+                ⌘Z undoes a mark, ⌘C copies, ⌘S saves, esc cancels.
                 """
         )
         hint.font = .systemFont(ofSize: 11)
@@ -180,6 +179,7 @@ final class PreferencesWindowController: NSWindowController {
             linkButton("Website", url: "https://trimshot.vercel.app"),
             linkButton("Source", url: "https://github.com/anhthienonline/trimshot"),
             linkButton("Privacy", url: "https://trimshot.vercel.app/privacy"),
+            linkButton("Thien Ho", url: "https://github.com/anhthienonline"),
         ])
         links.orientation = .horizontal
         links.spacing = 14

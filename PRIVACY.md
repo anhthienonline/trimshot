@@ -23,7 +23,7 @@ it does. With that permission it can read the contents of your displays. It uses
 
 - grab a full-resolution still of each display when you press the shortcut, held in memory
   for the length of one capture and released when the overlay closes;
-- read individual pixels from that still for the magnifier and the colour picker;
+- read the pixels along a line in that still to find the edges the measure tool reports;
 - recognise text with Apple's on-device Vision framework when you use OCR.
 
 ## No audio, despite what macOS asks for

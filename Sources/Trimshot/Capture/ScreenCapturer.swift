@@ -29,8 +29,8 @@ enum CaptureError: LocalizedError {
 /// The app captures *first* and shows the overlay on top of the frozen result, the way
 /// Lightshot does. A live transparent overlay would drift — video keeps playing, menus
 /// close, the cursor moves — so the pixels you finally crop would not be the pixels you
-/// selected. Freezing also makes the magnifier and the colour picker exact, since they
-/// read the same bitmap that gets cropped.
+/// selected. Freezing also makes the measure tool exact, since it reads the same bitmap
+/// that gets cropped.
 @MainActor
 enum ScreenCapturer {
 

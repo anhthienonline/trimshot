@@ -25,9 +25,9 @@ final class OverlayWindow: NSWindow {
         ]
         ignoresMouseEvents = false
         // Without this, `mouseMoved:` is never delivered and the cursor position only updates
-        // on a click or a drag — which freezes the magnifier and the measure-mode dimension
-        // lines at wherever the pointer happened to be when the overlay opened. Both features
-        // exist to follow the cursor, so both looked broken.
+        // on a click or a drag — which froze the measure-mode dimension lines at wherever the
+        // pointer happened to be when the overlay opened. A feature that exists to follow the
+        // cursor looks completely broken without it.
         acceptsMouseMovedEvents = true
         isReleasedWhenClosed = false
         // Nothing here should end up in a Mission Control or window-list screenshot.

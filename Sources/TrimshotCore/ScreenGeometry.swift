@@ -58,7 +58,7 @@ public enum ScreenGeometry {
     /// `display`'s bitmap (origin top-left, Y down).
     ///
     /// Floors rather than rounds: a cursor anywhere inside a pixel should report *that*
-    /// pixel, which matters for the magnifier and the colour picker.
+    /// pixel, which is what makes the measure tool land on the edge you are pointing at.
     public static func pixelPoint(
         forGlobalPoint point: CGPoint,
         in display: DisplayGeometry

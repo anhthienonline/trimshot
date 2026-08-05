@@ -32,7 +32,6 @@ final class OverlayRootView: NSView {
     private let shot: DisplayShot
     private weak var coordinator: OverlayCoordinator?
     private let chrome: SelectionChromeView
-    private let magnifier: Magnifier
 
     private var interaction: Interaction = .none
 
@@ -45,7 +44,6 @@ final class OverlayRootView: NSView {
         self.shot = shot
         self.coordinator = coordinator
         self.chrome = SelectionChromeView(shot: shot)
-        self.magnifier = Magnifier(shot: shot)
         super.init(frame: CGRect(origin: .zero, size: shot.geometry.frame.size))
 
         wantsLayer = true
@@ -333,8 +331,6 @@ final class OverlayRootView: NSView {
             }
         case kVK_Return, kVK_ANSI_KeypadEnter:
             coordinator?.finish(with: .copy)
-        case kVK_ANSI_C where event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty:
-            copyColorUnderCursor()
         case kVK_ANSI_M where event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty:
             coordinator?.toggleMeasuring()
         case kVK_LeftArrow:
@@ -496,14 +492,4 @@ final class OverlayRootView: NSView {
         coordinator.commitDraft()
     }
 
-    private func copyColorUnderCursor() {
-        let point = NSEvent.mouseLocation
-        guard
-            shot.geometry.frame.contains(point),
-            let hex = magnifier.colorHex(at: point)
-        else { return }
-
-        ClipboardService.copy(text: hex)
-        coordinator?.flashColorCopied(hex)
-    }
 }
