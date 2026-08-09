@@ -25,6 +25,48 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   content="Freezes every display before you select, so the pixels you crop are the pixels you saw. Points and pixels, together."
 />
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="Trimshot" />
+<meta property="og:url" content="https://trimshot.vercel.app/" />
+<link rel="canonical" href="https://trimshot.vercel.app/" />
+<!-- Rendered from site/og.html by Chrome at 1200×630, the size every platform crops from. -->
+<meta property="og:image" content="https://trimshot.vercel.app/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta
+  property="og:image:alt"
+  content="Trimshot — a measuring instrument for design QA. macOS 14+, free."
+/>
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Trimshot — a measuring instrument for design QA" />
+<meta
+  name="twitter:description"
+  content="Freezes every display before you select, so the pixels you crop are the pixels you saw. Points and pixels, together."
+/>
+<meta name="twitter:image" content="https://trimshot.vercel.app/og.png" />
+
+<!-- Tells search engines this is software rather than an article: what it runs on, what it
+     costs, and where the download is. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Trimshot",
+  "applicationCategory": "DeveloperApplication",
+  "applicationSubCategory": "Screen capture",
+  "operatingSystem": "macOS 14.0 or later",
+  "url": "https://trimshot.vercel.app/",
+  "downloadUrl": "https://trimshot.vercel.app/Trimshot.dmg",
+  "softwareVersion": "0.1.0",
+  "license": "https://github.com/anhthienonline/trimshot/blob/main/LICENSE",
+  "description": "A macOS capture tool that freezes the screen before you select and reports every reading in CSS pixels, the unit Figma and CSS use.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": {
+    "@type": "Person",
+    "name": "Thien Ho",
+    "url": "https://github.com/anhthienonline"
+  }
+}
+</script>
 <link
   rel="icon"
   href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%235fd3de' stroke-width='7'%3E%3Cpath d='M22 40V22h18'/%3E%3Cpath d='M60 22h18v18'/%3E%3Cpath d='M78 60v18H60'/%3E%3Cpath d='M40 78H22V60'/%3E%3C/g%3E%3C/svg%3E"
@@ -225,7 +267,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .btn-primary:hover { filter: brightness(1.08); }
   .btn-ghost { border-color: var(--hairline); color: var(--ink); background: var(--surface); }
   .btn-ghost:hover { border-color: var(--muted); }
-  .btn small { font-family: var(--mono); font-size: 0.6875rem; opacity: 0.75; font-weight: 400; }
+  /* 0.85, not 0.75: at 0.75 the white composites to #c3dadd on the petrol button, which is
+     4.24:1 — under the 4.5 needed for text this size. 0.85 gives 4.97:1 in light and 7.62:1
+     in dark, and still reads as secondary to the label beside it. */
+  .btn small { font-family: var(--mono); font-size: 0.6875rem; opacity: 0.85; font-weight: 400; }
 
   /* ---- The sheet ---------------------------------------------------------
      The page is laid out as a measured drawing: a ruler down the left edge,
@@ -416,9 +461,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
   .cdots { display: flex; gap: 0.4rem; }
   .vr { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  /* Not `--hairline`: these are controls, and WCAG 1.4.11 wants 3:1 for those. Hairline is
+     1.21:1 in light and 1.68:1 in dark — the unlit dots were effectively invisible, so only
+     the current view could be seen and nobody could tell the others were clickable. These
+     measure 3.77:1 and 3.58:1, still well below the lit dot at 5.77:1 / 10.08:1. */
+  :root { --dot-idle: #6f818b; }
+  @media (prefers-color-scheme: dark) { :root { --dot-idle: #3d7883; } }
+  :root[data-theme="dark"] { --dot-idle: #3d7883; }
+  :root[data-theme="light"] { --dot-idle: #6f818b; }
+
   .cdots label {
     display: block; width: 1.75rem; height: 0.375rem; border-radius: 99px;
-    background: var(--hairline); cursor: pointer;
+    background: var(--dot-idle); cursor: pointer;
     /* The dots carry the same 22.5s cycle as the frames, offset by the same `--i`, so one
        dot is lit for exactly the window its frame is on screen. Without this nothing marks
        the current view while the slideshow is rotating: `:checked` only ever applies after
@@ -429,8 +483,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @keyframes dotcycle {
     0%      { background: var(--petrol) }
     20%     { background: var(--petrol) }
-    20.01%  { background: var(--hairline) }
-    100%    { background: var(--hairline) }
+    20.01%  { background: var(--dot-idle) }
+    100%    { background: var(--dot-idle) }
   }
   /* An animated background beats a hover rule, so hover is shown by height instead —
      otherwise the dots would stop responding to the pointer. */
@@ -441,7 +495,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .carousel:focus-within .cdots label { animation-play-state: paused; }
 
   /* Once a view is picked the cycle stops, and the chosen dot alone stays lit. */
-  .carousel:has(.vr:checked) .cdots label { animation: none; background: var(--hairline); }
+  .carousel:has(.vr:checked) .cdots label { animation: none; background: var(--dot-idle); }
   .carousel:has(.vr:checked) .vr:checked + label { background: var(--petrol); }
   .vr:focus-visible + label { outline: 2px solid var(--petrol); outline-offset: 3px; }
 
@@ -732,11 +786,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <a class="btn btn-primary navcta" href="Trimshot.dmg" download data-cta="nav">Download<small>552 KB</small></a>
   </nav>
 
+  <main>
+
   <header>
     <div class="titleblock">
       <div class="tb-cell">
         <span class="k">Instrument</span>
-        <p class="tb-name">Trimshot</p>
+        <!-- An h1, not a styled paragraph: this is the page's only top-level heading, and
+             without it the document went straight to h2 with no h1 at all. -->
+        <h1 class="tb-name">Trimshot</h1>
       </div>
       <div class="tb-cell">
         <span class="k">Reads in</span>
@@ -1216,6 +1274,9 @@ brew install --cask trimshot</pre>
       </p>
     </div>
   </section>
+
+  <!-- One main landmark: without it a screen reader has no way to skip the nav. -->
+  </main>
 
   <footer>
     <hr class="rule" />

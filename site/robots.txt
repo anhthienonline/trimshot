@@ -1,0 +1,7 @@
+# Everything here is meant to be found. The disk image is excluded only because a crawler
+# fetching it repeatedly costs bandwidth and indexes nothing readable.
+User-agent: *
+Allow: /
+Disallow: /Trimshot.dmg
+
+Sitemap: https://trimshot.vercel.app/sitemap.xml
