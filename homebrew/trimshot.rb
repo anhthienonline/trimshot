@@ -13,7 +13,7 @@
 # an un-notarised cask may stop being accepted.
 cask "trimshot" do
   version "0.1.0"
-  sha256 "99dbc53ab5efaa9e4fe084433fdb6a1550f073256b6b6e4c0146ef935536a167"
+  sha256 "b9b35d2bfad3f3c99dde15233fa50d1643b8d8a3851375927b01ed55d8a724b8"
 
   url "https://github.com/anhthienonline/trimshot/releases/download/v#{version}/Trimshot.dmg",
       verified: "github.com/anhthienonline/trimshot/"
