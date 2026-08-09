@@ -293,6 +293,20 @@ the manual gate before publishing:
 `homebrew/trimshot.rb` is the source of truth for the cask; the tap itself is a separate
 repository (`homebrew-trimshot`, so the tap name is `anhthienonline/trimshot`).
 
+**Installing takes three commands, not two.** Homebrew 6 will not load anything from a tap
+outside its own repositories until it is trusted, so the tap has to be trusted between
+tapping and installing:
+
+```bash
+brew tap anhthienonline/trimshot
+brew trust anhthienonline/trimshot
+brew install --cask trimshot
+```
+
+Leave the middle line out and the install stops with *Refusing to load cask … from untrusted
+tap*. `brew trust --cask anhthienonline/trimshot/trimshot` is the narrower form, trusting
+this one cask rather than everything the tap may ever hold.
+
 **Homebrew does not solve the Gatekeeper problem.** Cask quarantines its downloads by
 default, so `brew install --cask trimshot` on an un-notarised build still needs the same
 one-time approval in System Settings. The `--no-quarantine` flag that used to skip it is

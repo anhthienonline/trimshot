@@ -1141,7 +1141,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     <h3 style="font-size:0.9375rem;margin:2.5rem 0 0.75rem">Or with Homebrew</h3>
     <pre>brew tap anhthienonline/trimshot
+brew trust anhthienonline/trimshot
 brew install --cask trimshot</pre>
+    <p style="max-width:var(--col);font-size:0.9375rem;color:var(--muted)">
+      The middle line is not optional. Homebrew 6 refuses to load anything from a tap outside
+      its own repositories until you say you trust it, so without it the install stops with
+      <em>“Refusing to load cask … from untrusted tap”</em>. That check is doing its job — a
+      tap is somebody else's Ruby, and here that somebody is me.
+    </p>
     <p style="max-width:var(--col);font-size:0.9375rem;color:var(--muted)">
       Convenient for installing and updating, but it does <em>not</em> skip the step below:
       Homebrew quarantines its downloads by default, so an un-notarised build still needs the

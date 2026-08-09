@@ -4,6 +4,11 @@
 # the disk image it just built, then tells you what to copy into the tap repository
 # (github.com/anhthienonline/homebrew-trimshot, at Casks/trimshot.rb).
 #
+# Installing from here takes three commands, not two: Homebrew 6 refuses to load anything
+# from a tap outside its own repositories until the user runs `brew trust`. Measured — the
+# tap clones fine and then the install stops with "Refusing to load cask ... from untrusted
+# tap". Any instructions that show only `tap` and `install` are broken for everybody.
+#
 # IMPORTANT, and the reason this is not the headline install method: Homebrew Cask
 # quarantines its downloads by default. `brew install --cask trimshot` therefore still hits
 # Gatekeeper on an un-notarised build, exactly like downloading the dmg by hand — the user
@@ -22,7 +27,12 @@ cask "trimshot" do
   homepage "https://github.com/anhthienonline/trimshot"
 
   # ScreenCaptureKit's SCScreenshotManager is macOS 14+.
-  depends_on macos: ">= :sonoma"
+  #
+  # The bare symbol, not `">= :sonoma"`: Homebrew deprecated the string comparison form, and
+  # the two mean the same thing here. Cask's DSL parses this with `comparator: ">="` already
+  # (Homebrew/cask/dsl/depends_on.rb), so this still reads "Sonoma or newer" and does not
+  # narrow the requirement to one release.
+  depends_on macos: :sonoma
 
   app "Trimshot.app"
 
