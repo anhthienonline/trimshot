@@ -98,6 +98,12 @@ final class ToolbarView: NSVisualEffectView {
     }
 
     override func mouseMoved(with event: NSEvent) {
+        // A mouseMoved can still arrive after the bar has been ordered out; showing a tip for
+        // a bar that is gone leaves it orphaned on screen.
+        guard window?.isVisible == true else {
+            hideTip()
+            return
+        }
         let point = convert(event.locationInWindow, from: nil)
         let button = allButtons().first { $0.frame.contains(point) }
         guard button !== hoveredButton else { return }

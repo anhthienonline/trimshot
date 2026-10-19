@@ -74,9 +74,22 @@ final class TipWindow: NSPanel {
         }
         setFrame(CGRect(origin: origin, size: size), display: true)
         orderFrontRegardless()
+
+        // Backstop. The tip ignores the mouse and is excluded from screenshots, so one that
+        // outlives its toolbar cannot be clicked, captured or dismissed — only quitting the
+        // app removes it. Whatever path leaks it, it goes away on its own.
+        dismissTimer?.invalidate()
+        dismissTimer = Timer.scheduledTimer(withTimeInterval: Self.maxLifetime, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.hide() }
+        }
     }
 
     func hide() {
+        dismissTimer?.invalidate()
+        dismissTimer = nil
         orderOut(nil)
     }
+
+    private var dismissTimer: Timer?
+    private static let maxLifetime: TimeInterval = 4
 }
