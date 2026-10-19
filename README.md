@@ -112,6 +112,12 @@ The **save format** setting governs saved files only. Copies are always PNG: a J
 pasteboard would put compression artefacts into every pasted capture, and colours and edges
 are the thing this tool exists to check.
 
+The **resolution** setting governs how many pixels a capture actually contains, and applies to
+copies and saved files alike so the two can never disagree. A 420 × 240 selection on a Retina
+display is 840 × 480 real pixels: `2×` keeps them, which is the default because throwing half
+of them away should be something you ask for. `1×` resamples down so the file measures what the
+overlay reported. It only ever shrinks — enlarging would invent detail.
+
 **OCR** reads Vietnamese and English on-device via Vision and puts the text on the
 clipboard. Note that Vision's Vietnamese language tag is `vi-VT`, not the `vi-VN` you would
 expect — asking for `vi-VN` silently falls back to English-only and mangles every accent.

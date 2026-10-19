@@ -596,4 +596,41 @@ Check.suite("Units") {
     )
 }
 
+Check.suite("ImageCompositor.resample") {
+    /// A solid bitmap of a known size, in the same format `crop` produces.
+    func bitmap(_ width: Int, _ height: Int) -> CGImage {
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
+        let context = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        context.setFillColor(CGColor(red: 0.05, green: 0.42, blue: 0.47, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        return context.makeImage()!
+    }
+
+    // A 420×240 selection on a 2× display, asked for at 1×.
+    let halved = ImageCompositor.resample(bitmap(840, 480), dividingBy: 2)
+    Check.expectEqual(halved?.width, 420, "÷2 halves the width")
+    Check.expectEqual(halved?.height, 240, "÷2 halves the height")
+
+    // 2× is the default, and must not touch the bitmap at all.
+    let untouched = ImageCompositor.resample(bitmap(840, 480), dividingBy: 1)
+    Check.expectEqual(untouched?.width, 840, "÷1 leaves the width alone")
+    Check.expectEqual(untouched?.height, 480, "÷1 leaves the height alone")
+
+    // Only ever shrinks: a divisor below 1 would enlarge, inventing detail.
+    let notEnlarged = ImageCompositor.resample(bitmap(100, 100), dividingBy: 0.5)
+    Check.expectEqual(notEnlarged?.width, 100, "a divisor below 1 is refused, not applied")
+
+    // Odd dimensions round rather than drifting off by one.
+    let odd = ImageCompositor.resample(bitmap(841, 481), dividingBy: 2)
+    Check.expectEqual(odd?.width, 421, "an odd width rounds rather than truncating")
+    Check.expectEqual(odd?.height, 241, "an odd height rounds rather than truncating")
+
+    // A target that would round to zero must not reach CGContext, which refuses such a size.
+    let tiny = ImageCompositor.resample(bitmap(1, 1), dividingBy: 4)
+    Check.expectEqual(tiny?.width, 1, "a target that would round to zero returns the original")
+}
+
 Check.finish()

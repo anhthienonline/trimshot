@@ -13,6 +13,26 @@ enum ImageFormat: String, CaseIterable {
     }
 }
 
+/// How many pixels an exported capture actually contains.
+///
+/// A 420 × 240 selection on a Retina display is 840 × 480 real pixels. `.two` keeps them,
+/// which is what makes a capture worth checking colours and edges in. `.one` resamples down
+/// so the file measures what the overlay reported — smaller, and the number matches.
+///
+/// This governs the *pixels*, not how the pasteboard labels them: at `.one` there is no
+/// longer a 2× file to label, so the two agree by construction.
+enum ExportScale: String, CaseIterable {
+    case one = "1x"
+    case two = "2x"
+
+    var label: String { self == .one ? "1× — match the reading" : "2× — every pixel" }
+
+    /// The divisor applied to a capture rendered at `renderScale`.
+    func divisor(forRenderScale renderScale: CGFloat) -> CGFloat {
+        self == .two ? 1 : max(renderScale, 1)
+    }
+}
+
 /// UserDefaults-backed preferences. Deliberately tiny — everything here has a sane
 /// default so the app works before the user ever opens Preferences.
 @MainActor
@@ -24,6 +44,7 @@ final class Settings {
     private enum Key {
         static let saveDirectory = "saveDirectoryPath"
         static let imageFormat = "imageFormat"
+        static let exportScale = "exportScale"
         static let copyAfterCapture = "copyAfterCapture"
         static let hotKeyCode = "hotKeyCode"
         static let hotKeyModifiers = "hotKeyModifiers"
@@ -33,6 +54,9 @@ final class Settings {
     private init() {
         defaults.register(defaults: [
             Key.imageFormat: ImageFormat.png.rawValue,
+            // 2× by default: this is a tool for checking pixels, so throwing half of them
+            // away has to be something the user asks for.
+            Key.exportScale: ExportScale.two.rawValue,
             Key.copyAfterCapture: true,
         ])
     }
@@ -52,6 +76,11 @@ final class Settings {
     var imageFormat: ImageFormat {
         get { ImageFormat(rawValue: defaults.string(forKey: Key.imageFormat) ?? "") ?? .png }
         set { defaults.set(newValue.rawValue, forKey: Key.imageFormat) }
+    }
+
+    var exportScale: ExportScale {
+        get { ExportScale(rawValue: defaults.string(forKey: Key.exportScale) ?? "") ?? .two }
+        set { defaults.set(newValue.rawValue, forKey: Key.exportScale) }
     }
 
     /// Whether finishing a capture also puts the image on the pasteboard.

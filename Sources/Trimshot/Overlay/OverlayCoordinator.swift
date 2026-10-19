@@ -92,13 +92,47 @@ final class OverlayCoordinator: NSObject {
     }
 
     func finish(with action: OverlayAction) {
+        // Logged before anything can go wrong, because the failures being chased correlate
+        // with *which* display and Space the selection was on. Assembled as a plain String
+        // first: an os_log interpolation cannot be split across lines.
+        let place = selection.map {
+            "\(Int($0.width))×\(Int($0.height))@\(Int($0.minX)),\(Int($0.minY))"
+        } ?? "nil"
+        let scales = shots.map { String(format: "%.1f", $0.geometry.scale) }.joined(separator: ",")
+        let context = "finish(\(action)) active=\(isActive) shots=\(shots.count) "
+            + "screens=\(NSScreen.screens.count) selection=\(place) scales=[\(scales)]"
+        Diagnostics.capture.info("\(context, privacy: .public)")
         guard isActive, let image = composeImage() else {
+            Diagnostics.capture.error("finish aborted: no composed image")
             NSSound.beep()
             return
         }
+        Diagnostics.capture.debug("composed: \(Diagnostics.describe(image), privacy: .public)")
+
+        // Read before teardown, which sets `selection` to nil and empties `shots`. Everything
+        // `perform` needs about the geometry has to be carried across that line by hand — the
+        // previous code read `selection` afterwards and so always got nil, which is why the HUD
+        // reported device pixels while its comment claimed it reported the selection.
+        let region = selection
+        let renderScale = region.map {
+            ScreenGeometry.renderScale(forGlobalRect: $0, among: shots.map(\.geometry))
+        } ?? 1
+
+        // Applied here rather than in each branch, so Copy and Save can never disagree about
+        // how many pixels the user asked for.
+        let divisor = Settings.shared.exportScale.divisor(forRenderScale: renderScale)
+        let exported = ImageCompositor.resample(image, dividingBy: divisor) ?? image
+        // After resampling there is no 2× file left to label, so the pasteboard's point size
+        // is just the pixel count again.
+        let pasteScale = renderScale / divisor
+        if divisor > 1 {
+            Diagnostics.capture.info(
+                "resampled ÷\(divisor, format: .fixed(precision: 1)) to \(exported.width)×\(exported.height)"
+            )
+        }
 
         teardown()
-        perform(action, on: image)
+        perform(action, on: exported, region: region, scale: pasteScale)
     }
 
     /// The selection with its annotations baked in, at full capture resolution.
@@ -334,16 +368,31 @@ final class OverlayCoordinator: NSObject {
 
     // MARK: - Output
 
-    private func perform(_ action: OverlayAction, on image: CGImage) {
+    /// - Parameters:
+    ///   - region: the selection in global points, captured before teardown cleared it.
+    ///   - scale: the scale the crop was rendered at, so the pasteboard can declare a point
+    ///     size that matches what the user drew rather than the pixel count.
+    private func perform(
+        _ action: OverlayAction,
+        on image: CGImage,
+        region: CGRect?,
+        scale: CGFloat
+    ) {
         let settings = Settings.shared
 
         switch action {
         case .copy:
-            ClipboardService.copy(image)
-            // The selection, not the bitmap: a Retina file is 2× these numbers, and the
-            // number worth confirming is the one the user just drew.
-            HUD.show("Copied  " + (selection.map { Units.size($0.size) }
-                ?? Units.deviceSize(width: image.width, height: image.height)))
+            // The reading comes from the selection, not the bitmap: a Retina file is 2× these
+            // numbers, and the number worth confirming is the one the user just drew. But the
+            // *verb* has to come from the pasteboard — reporting "Copied" when the write
+            // failed is what made this impossible to diagnose from the outside.
+            let reading = region.map { Units.size($0.size) }
+                ?? Units.deviceSize(width: image.width, height: image.height)
+            if ClipboardService.copy(image, scale: scale) {
+                HUD.show("Copied  " + reading)
+            } else {
+                HUD.show("Copy failed — nothing on the clipboard", duration: .seconds(4))
+            }
 
         case .save:
             do {
@@ -352,10 +401,14 @@ final class OverlayCoordinator: NSObject {
                     to: settings.saveDirectory,
                     format: settings.imageFormat
                 )
-                if settings.copyAfterCapture {
-                    ClipboardService.copy(image)
-                }
-                HUD.show("Saved  \(url.lastPathComponent)")
+                // The file is already on disk, so a failed clipboard write must not read as
+                // a failed save — but it must not be silent either.
+                let copied = settings.copyAfterCapture ? ClipboardService.copy(image, scale: scale) : true
+                HUD.show(
+                    copied
+                        ? "Saved  \(url.lastPathComponent)"
+                        : "Saved  \(url.lastPathComponent)  ·  copy failed"
+                )
             } catch {
                 present(error)
             }

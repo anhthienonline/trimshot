@@ -71,6 +71,36 @@ public enum ImageCompositor {
         return context.makeImage()
     }
 
+    /// Resamples `image` down by `divisor`, or returns it untouched when there is nothing to
+    /// do — a divisor of 1 or less, or a target that would round to zero.
+    ///
+    /// Only ever used to shrink. Enlarging a capture would invent detail, and this is a tool
+    /// whose whole claim is that the pixels are the pixels.
+    public static func resample(_ image: CGImage, dividingBy divisor: CGFloat) -> CGImage? {
+        guard divisor > 1 else { return image }
+
+        let width = Int((CGFloat(image.width) / divisor).rounded())
+        let height = Int((CGFloat(image.height) / divisor).rounded())
+        guard width > 0, height > 0 else { return image }
+
+        guard
+            let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+            let context = CGContext(
+                data: nil,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        else { return nil }
+
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return context.makeImage()
+    }
+
     /// The display shot under a point in AppKit global coordinates.
     public static func shot(at globalPoint: CGPoint, from shots: [DisplayShot]) -> DisplayShot? {
         shots.first { $0.geometry.frame.contains(globalPoint) }

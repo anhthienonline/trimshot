@@ -80,6 +80,27 @@ final class PreferencesWindowController: NSWindowController {
         formatStack.alignment = .centerY
         formatStack.spacing = 10
 
+        let scalePicker = NSPopUpButton()
+        scalePicker.addItems(withTitles: ExportScale.allCases.map(\.label))
+        scalePicker.selectItem(
+            at: ExportScale.allCases.firstIndex(of: settings.exportScale) ?? 0
+        )
+        scalePicker.target = self
+        scalePicker.action = #selector(exportScaleChanged)
+
+        // Says what the number *is*, because "1×" and "2×" mean nothing without a reference:
+        // a 420 × 240 selection on a Retina display is 840 × 480 real pixels.
+        let scaleNote = NSTextField(
+            labelWithString: "A 420 × 240 selection is 840 × 480 pixels at 2×"
+        )
+        scaleNote.font = .systemFont(ofSize: 11)
+        scaleNote.textColor = .secondaryLabelColor
+
+        let scaleStack = NSStackView(views: [scalePicker, scaleNote])
+        scaleStack.orientation = .horizontal
+        scaleStack.alignment = .centerY
+        scaleStack.spacing = 10
+
         let copyToggle = NSButton(
             checkboxWithTitle: "Also copy to the clipboard when saving",
             target: self,
@@ -98,6 +119,7 @@ final class PreferencesWindowController: NSWindowController {
             [label("Shortcut"), recorder],
             [label("Save to"), directoryStack],
             [label("Save format"), formatStack],
+            [label("Resolution"), scaleStack],
             [NSGridCell.emptyContentView, copyToggle],
             [NSGridCell.emptyContentView, loginToggle],
         ])
@@ -235,6 +257,12 @@ final class PreferencesWindowController: NSWindowController {
         let formats = ImageFormat.allCases
         guard formats.indices.contains(sender.indexOfSelectedItem) else { return }
         settings.imageFormat = formats[sender.indexOfSelectedItem]
+    }
+
+    @objc private func exportScaleChanged(_ sender: NSPopUpButton) {
+        let scales = ExportScale.allCases
+        guard scales.indices.contains(sender.indexOfSelectedItem) else { return }
+        settings.exportScale = scales[sender.indexOfSelectedItem]
     }
 
     @objc private func copyToggled(_ sender: NSButton) {

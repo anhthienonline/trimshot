@@ -60,6 +60,10 @@ First public build.
 
 - Copy to clipboard as PNG and TIFF, save to a configured folder or through a panel. The
   format preference governs saved files only — copies stay lossless.
+- A resolution preference: `2×` keeps every captured pixel, `1×` resamples down so the file
+  measures what the overlay reported. Applies to copies and saved files together.
+- Copies declare their point size from the selection rather than the pixel count, so a Retina
+  capture pastes at the size you drew instead of twice it.
 - No network access. There is no networking code in the binary.
 
 ### App
